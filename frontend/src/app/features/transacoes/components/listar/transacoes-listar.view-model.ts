@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { DestroyRef, Injectable, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, Subject, Subscription, forkJoin } from 'rxjs';
 import { TransacoesService } from '../../services/transacoes.service';
@@ -72,6 +72,10 @@ export class TransacoesListViewModel {
   private notification = inject(NotificationService);
   private selectedBanco = inject(SelectedBancoService);
   private listState = inject(ListStateService);
+  private destroyRef = inject(DestroyRef);
+
+  /** Set when the list is destroyed: late callbacks (e.g. a delete answering after the user left) must not load or save anything */
+  private destroyed = false;
 
   readonly isLoading$ = new BehaviorSubject<boolean>(false);
 
@@ -105,6 +109,7 @@ export class TransacoesListViewModel {
   private lastBancoId: string | null | undefined;
 
   constructor() {
+    this.destroyRef.onDestroy(() => this.destroyed = true);
     this.restoreState();
     this.selectedBanco.selectedBancoId$.pipe(takeUntilDestroyed()).subscribe(bancoId => {
       const bancoChanged = this.lastBancoId !== undefined && bancoId !== this.lastBancoId;
@@ -122,6 +127,7 @@ export class TransacoesListViewModel {
    * Load all supporting data (categories, cards, accounts) and refresh both lists on their current page
    */
   loadAll(): void {
+    if (this.destroyed) return;
     this.allSub?.unsubscribe();
     this.contaSub?.unsubscribe();
     this.cartaoSub?.unsubscribe();
@@ -142,7 +148,7 @@ export class TransacoesListViewModel {
       categorias: this.categoriasService.getAll(),
       cartoes: this.cartoesService.getAll(bancoId),
       contas: this.contasService.getAll(bancoId)
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: ({ categorias, cartoes, contas }) => {
         this.categorias$.next(categorias);
         this.cartoes$.next(CartoesCreditoMapper.toModelArray(cartoes));
@@ -164,6 +170,7 @@ export class TransacoesListViewModel {
    * Load the current page of the account column, sending every active filter to the API
    */
   loadContaTransacoes(): void {
+    if (this.destroyed) return;
     this.contaSub?.unsubscribe();
     const bancoId = this.bancoId ?? undefined;
 
@@ -178,7 +185,7 @@ export class TransacoesListViewModel {
       { bancoId, contaId: f.contaId, categoriaId: f.categoriaId, period: f.period },
       this.contaPage,
       this.contaPageSize
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: dto => {
         // Page beyond the end (e.g. last item of the last page was deleted, or nothing left at all): go to the last page, or 1
         if (dto.page > Math.max(dto.totalPages, 1)) {
@@ -230,6 +237,7 @@ export class TransacoesListViewModel {
    * Load the current page of the credit-card column, sending every active filter to the API
    */
   loadCartaoTransacoes(): void {
+    if (this.destroyed) return;
     this.cartaoSub?.unsubscribe();
     const bancoId = this.bancoId ?? undefined;
 
@@ -244,7 +252,7 @@ export class TransacoesListViewModel {
       { bancoId, cartaoCreditoId: f.cartaoId, categoriaId: f.categoriaId, status: f.status, period: f.period },
       this.cartaoPage,
       this.cartaoPageSize
-    ).subscribe({
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: dto => {
         // Page beyond the end (e.g. last item of the last page was deleted, or nothing left at all): go to the last page, or 1
         if (dto.page > Math.max(dto.totalPages, 1)) {

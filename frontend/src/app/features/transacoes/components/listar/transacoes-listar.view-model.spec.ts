@@ -1,3 +1,4 @@
+import { EnvironmentInjector, createEnvironmentInjector, runInInjectionContext } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Subject, of } from 'rxjs';
@@ -10,6 +11,8 @@ import { NotificationService } from '../../../../services/notification.service';
 import { SelectedBancoService } from '../../../../services/selected-banco.service';
 import { ListStateService } from '../../../../services/list-state.service';
 import { DEFAULT_PAGE_SIZE } from '../../../../shared/components/pagination/pagination.component';
+import { PaginatedDTO } from '../../../../shared/dto/paginated.dto';
+import { TransacoesDTO } from '../../dto/transacoes.dto';
 
 describe('TransacoesListViewModel (estado ao voltar à lista)', () => {
   let bancoId$: BehaviorSubject<string | null>;
@@ -98,5 +101,22 @@ describe('TransacoesListViewModel (estado ao voltar à lista)', () => {
       .toEqual({ bancoId: 'BNC2', contaId: '', categoriaId: 'CAT1', period: 'Este Mês' });
     // A list created afterwards (back from a form) sees the same, already-cleaned state
     expect(newViewModel().contaFilters.contaId).toBe('');
+  });
+
+  it('a page request answering after the list was destroyed does not save state or load again', () => {
+    const lateAnswer = new Subject<PaginatedDTO<TransacoesDTO>>();
+    transacoes.getContaTransactionsPage.and.returnValue(lateAnswer);
+    const injector = createEnvironmentInjector([], TestBed.inject(EnvironmentInjector));
+    runInInjectionContext(injector, () => new TransacoesListViewModel());
+    const listState = TestBed.inject(ListStateService);
+
+    injector.destroy();
+    listState.clear(); // e.g. the user left /transacoes or logged out
+    transacoes.getContaTransactionsPage.calls.reset();
+    // Page beyond the end: a live list would correct the page, save it and ask again
+    lateAnswer.next({ items: [], page: 3, pageSize: DEFAULT_PAGE_SIZE, totalPages: 1, totalItems: 5 });
+
+    expect(listState.get('transacoes', 'listar')).toBeUndefined();
+    expect(transacoes.getContaTransactionsPage).not.toHaveBeenCalled();
   });
 });
