@@ -6,9 +6,9 @@
 | **Branch** | `fix/filtros-persistem-entre-paginas` (base: `develop`) |
 | **Estado** | Implementado e testado manualmente na app pelo utilizador (2026-11-14) |
 | **Build** | `cd frontend && npm run build` OK, sem erros nem avisos — linha de base também OK |
-| **Testes** | `cd frontend && npm test`: 24 testes a passar (linha de base: 15); **9 novos** — 4 em `list-state.service.spec.ts`, 3 em `transacoes-listar.view-model.spec.ts`, 2 em `despesas-recorrentes-listar.view-model.spec.ts` |
+| **Testes** | `cd frontend && npm test`: 26 testes a passar (linha de base: 15); **11 novos** — 4 em `list-state.service.spec.ts`, 4 em `transacoes-listar.view-model.spec.ts`, 3 em `despesas-recorrentes-listar.view-model.spec.ts` (2 deles da revisão do PR, ver §7) |
 | **Lint** | O frontend não tem script de lint — não há gate a correr |
-| **Commits** | Por commitar |
+| **Commits** | `b5642e8`..`8017966` (5 commits, PR #96) + os commits da revisão CodeRabbit (§7) |
 
 ## 1. O que foi fechado
 
@@ -53,3 +53,23 @@ Nenhum.
 - `docs/changes/bugfixes/B0018-filtros-persistem-entre-paginas/README.md` — novo
 - `docs/changes/bugfixes/B0018-filtros-persistem-entre-paginas/RESULT.md` — novo
 - `docs/changes/bugfixes/README.md` — alterado (linha do B0018)
+
+## 7. Revisão do CodeRabbit (PR #96)
+
+2 findings (2 inline, ambos Minor), verificados contra o código antes de corrigir.
+
+| # | Finding | Verificação | Resolução |
+| :--- | :--- | :--- | :--- |
+| 1 | Despesas Recorrentes: ao mudar de banco, uma resposta atrasada das colunas do banco anterior ainda publica os itens e corta (e grava) a página | Válido: `loadAll()` só cancelava `allSub`; os pedidos das colunas só eram cancelados quando chegavam as categorias do banco novo | `loadAll()` cancela `pendentesSub`/`concluidasSub` logo no início. Teste com respostas do banco anterior atrasadas (`Subject`): falha contra o código antigo (página 3 → 2) e passa com a correção |
+| 2 | Transações: os pedidos de página não são cancelados quando o ViewModel é destruído; uma resposta atrasada no ramo "página para lá do fim" grava estado da instância morta | Válido: `allSub`/`contaSub`/`cartaoSub` só eram cancelados ao recarregar | `pipe(takeUntilDestroyed(this.destroyRef))` nos três pedidos. Além do que o bot sugeriu: `loadAll`/`loadContaTransacoes`/`loadCartaoTransacoes` não fazem nada depois da destruição, porque o `deleteTransacao` (que não é cancelado, para não abortar um DELETE) recarrega a coluna quando a resposta chega, e `takeUntilDestroyed` num `DestroyRef` já destruído lança NG0911. Teste com o ViewModel num injector destruído: falha contra o código antigo (estado recriado e novo pedido) e passa com a correção |
+
+**Gate depois da revisão:** build OK; testes 26/26.
+
+**Por fazer:** não foi feito novo teste manual na app depois destas correções.
+
+**Ficheiros alterados na revisão:**
+- `frontend/src/app/features/despesas-recorrentes/components/listar/despesas-recorrentes-listar.view-model.ts`
+- `frontend/src/app/features/despesas-recorrentes/components/listar/despesas-recorrentes-listar.view-model.spec.ts`
+- `frontend/src/app/features/transacoes/components/listar/transacoes-listar.view-model.ts`
+- `frontend/src/app/features/transacoes/components/listar/transacoes-listar.view-model.spec.ts`
+- `docs/changes/bugfixes/B0018-filtros-persistem-entre-paginas/RESULT.md`
