@@ -18,10 +18,14 @@ export class EstatisticasMapper {
           nome: c.categoria.nome,
           icon: c.categoria.icon
         },
+        grupo: c.grupo
+          ? { id: c.grupo.id, nome: c.grupo.nome, tipo: c.grupo.tipo, cor: c.grupo.cor, ordem: c.grupo.ordem }
+          : null,
         total: {
           valor: c.total.valor,
           moeda: c.total.moeda
-        }
+        },
+        numTransacoes: c.numTransacoes ?? 0
       })),
       historicoDiario: dto.historicoDiario.map(h => ({
         data: {

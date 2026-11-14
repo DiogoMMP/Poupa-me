@@ -1,4 +1,5 @@
 import {ICategoriaDTO} from "./ICategoriaDTO.js";
+import type {IGrupoCategoriaDTO} from "./IGrupoCategoriaDTO.js";
 import {IDataDTO} from "./shared/IDataDTO.js";
 import {IDinheiroDTO} from "./shared/IDinheiroDTO.js";
 
@@ -7,7 +8,11 @@ import {IDinheiroDTO} from "./shared/IDinheiroDTO.js";
  */
 export interface ICategoriaEstatistica {
     categoria: ICategoriaDTO;
+    /** Group of the categoria (inactive groups included, so old movimentos keep it); null = "Sem grupo". */
+    grupo: IGrupoCategoriaDTO | null;
     total: IDinheiroDTO;
+    /** Number of expense transactions summed into total. */
+    numTransacoes: number;
 }
 
 /**

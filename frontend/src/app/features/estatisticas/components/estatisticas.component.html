@@ -77,17 +77,113 @@
       </div>
 
       <div class="charts-grid">
-        <!-- Gastos por Categoria (Pie Chart) -->
-        <div class="chart-card">
-          <h3 class="chart-title">Gastos por Categoria</h3>
-          <div class="chart-wrapper">
+        <!-- Gastos: "Por grupo" (com detalhe do grupo) / "Por categoria" -->
+        <div class="chart-card" *ngIf="{ vista: vista$ | async, grupos: (gastosPorGrupo$ | async) ?? [], detalhe: detalheGrupo$ | async } as g">
+          <div class="chart-card-header">
+            <h3 class="chart-title">{{ g.vista === 'categoria' ? 'Gastos por Categoria' : 'Gastos por Grupo' }}</h3>
+            <div class="vista-toggle" role="group" aria-label="Agrupar gastos">
+              <button type="button" class="vista-btn" [class.active]="g.vista === 'grupo'"
+                [attr.aria-pressed]="g.vista === 'grupo'" (click)="vm.setVista('grupo')">Por grupo</button>
+              <button type="button" class="vista-btn" [class.active]="g.vista === 'categoria'"
+                [attr.aria-pressed]="g.vista === 'categoria'" (click)="vm.setVista('categoria')">Por categoria</button>
+            </div>
+          </div>
+
+          <!-- Por categoria: o donut de sempre -->
+          <div *ngIf="g.vista === 'categoria'" class="chart-wrapper">
             <ngx-charts-pie-chart
               [results]="pieChartData$ | async"
+              [customColors]="(pieChartColors$ | async) ?? []"
+              [tooltipText]="tooltipEuro"
               [legend]="false"
-              [labels]="true"
+              [labels]="false"
               [doughnut]="true"
               [arcWidth]="0.5">
             </ngx-charts-pie-chart>
+          </div>
+          <ul *ngIf="g.vista === 'categoria'" class="grupos-legend">
+            <li *ngFor="let linha of (legendaCategorias$ | async) ?? []" class="grupo-legend-row grupo-legend-row--estatica">
+              <span class="grupo-legend-dot" [style.background]="linha.cor"></span>
+              <span class="grupo-legend-nome">{{ linha.icon }} {{ linha.nome }}</span>
+              <span class="grupo-legend-valor">{{ linha.valor | number:'1.2-2' }} €</span>
+              <span class="grupo-legend-pct">{{ linha.percentagem | number:'1.0-1' }}%</span>
+            </li>
+          </ul>
+
+          <!-- Por grupo: uma fatia por grupo, na cor do grupo; clicar abre o detalhe -->
+          <ng-container *ngIf="g.vista === 'grupo' && !g.detalhe">
+            <div class="chart-wrapper">
+              <ngx-charts-pie-chart
+                [results]="pieGruposData$ | async"
+                [customColors]="(pieGruposColors$ | async) ?? []"
+                [tooltipText]="tooltipEuro"
+                [legend]="false"
+                [labels]="false"
+                [doughnut]="true"
+                [arcWidth]="0.5"
+                (select)="onSelectGrupo($event, g.grupos)">
+              </ngx-charts-pie-chart>
+            </div>
+            <ul class="grupos-legend">
+              <li *ngFor="let grupo of g.grupos">
+                <button type="button" class="grupo-legend-row" (click)="vm.abrirGrupo(grupo.chave)"
+                  [attr.aria-label]="'Ver o detalhe do grupo ' + grupo.nome">
+                  <span class="grupo-legend-dot" [style.background]="grupo.cor"></span>
+                  <span class="grupo-legend-nome">{{ grupo.nome }}</span>
+                  <span class="grupo-legend-valor">{{ grupo.total | number:'1.2-2' }} €</span>
+                  <span class="grupo-legend-pct">{{ grupo.percentagem | number:'1.0-1' }}%</span>
+                </button>
+              </li>
+            </ul>
+          </ng-container>
+
+          <!-- Detalhe do grupo -->
+          <div *ngIf="g.vista === 'grupo' && g.detalhe as detalhe" class="grupo-detalhe">
+            <div class="grupo-detalhe-header">
+              <button type="button" class="btn-secondary voltar-btn" (click)="vm.voltar()">
+                <app-icon name="ArrowLeft" [size]="16"></app-icon>
+                <span>Voltar</span>
+              </button>
+              <div class="grupo-detalhe-resumo">
+                <span class="grupo-detalhe-nome">{{ detalhe.nome }}</span>
+                <span class="grupo-detalhe-total">{{ detalhe.total | number:'1.2-2' }} €</span>
+                <span class="grupo-detalhe-pct">{{ detalhe.percentagem | number:'1.0-1' }}% do total de gastos</span>
+              </div>
+            </div>
+
+            <div class="chart-wrapper chart-wrapper--detalhe">
+              <ngx-charts-pie-chart
+                [results]="pieDetalheData$ | async"
+                [customColors]="(pieDetalheColors$ | async) ?? []"
+                [tooltipText]="tooltipEuro"
+                [legend]="false"
+                [labels]="false"
+                [doughnut]="true"
+                [arcWidth]="0.5">
+              </ngx-charts-pie-chart>
+            </div>
+
+            <table class="grupo-detalhe-tabela">
+              <thead>
+                <tr>
+                  <th scope="col">Categoria</th>
+                  <th scope="col" class="num">Valor</th>
+                  <th scope="col" class="num">% do grupo</th>
+                  <th scope="col" class="num">Transações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let c of detalhe.categorias; let i = index">
+                  <td class="detalhe-categoria">
+                    <span class="grupo-legend-dot" [style.background]="corDetalhe(i)"></span>
+                    <span>{{ c.icon }} {{ c.nome }}</span>
+                  </td>
+                  <td class="num">{{ c.valor | number:'1.2-2' }} €</td>
+                  <td class="num">{{ c.percentagem | number:'1.0-1' }}%</td>
+                  <td class="num">{{ c.numTransacoes }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 

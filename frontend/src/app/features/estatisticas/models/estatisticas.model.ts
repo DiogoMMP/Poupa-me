@@ -22,9 +22,20 @@ export interface ICategoriaModel {
   icon: string;
 }
 
+export interface IGrupoEstatisticaModel {
+  id?: string;
+  nome: string;
+  tipo: string;
+  cor: string;
+  ordem: number;
+}
+
 export interface ICategoriaEstatisticaModel {
   categoria: ICategoriaModel;
+  /** Grupo da categoria; null = "Sem grupo". */
+  grupo: IGrupoEstatisticaModel | null;
   total: IDinheiroProps;
+  numTransacoes: number;
 }
 
 export interface IHistoricoDiarioModel {
