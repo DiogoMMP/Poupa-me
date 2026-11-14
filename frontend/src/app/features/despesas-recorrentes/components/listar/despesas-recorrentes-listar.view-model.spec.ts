@@ -77,9 +77,11 @@ describe('DespesasRecorrentesListViewModel (estado ao voltar à lista)', () => {
   it('a late answer for the previous banco does not clamp the pages after a banco switch', () => {
     const oldPendentes = new Subject<unknown[]>();
     const oldConcluidas = new Subject<unknown[]>();
-    transacoes.getDespesaRecorrenteByStatus.and.callFake((status, bancoId) => (bancoId === 'BNC1'
-      ? (status === 'Pendente' ? oldPendentes : oldConcluidas)
-      : items(35, status)) as never);
+    // Default filters: Pendente has none (loaded by status), Concluído filters by period 'Este Mês'
+    transacoes.getDespesaRecorrenteByStatus.and.callFake((status, bancoId) =>
+      (bancoId === 'BNC1' ? oldPendentes : items(35, status)) as never);
+    transacoes.getDespesaRecorrenteByPeriod.and.callFake((_period, bancoId) =>
+      (bancoId === 'BNC1' ? oldConcluidas : items(35, 'Concluído')) as never);
     const vm = newViewModel();
     vm.pendentePage = 3;
     vm.concluidaPage = 3;
