@@ -1,4 +1,5 @@
-import { Component, OnInit, PLATFORM_ID, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, PLATFORM_ID, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -27,19 +28,26 @@ export class TransacoesListComponent implements OnInit {
   private confirmDialog = inject(ConfirmDialogService);
   private document = inject(DOCUMENT);
   private platformId = inject(PLATFORM_ID);
+  private destroyRef = inject(DestroyRef);
 
   /** Expose formatter utility directly to the template */
   readonly formatData = formatData;
 
-  // Local form state for filters (bound via ngModel)
-  contaFilterForm: ContaFilters = { categoriaId: '', contaId: '', period: 'Este Mês' };
-  cartaoFilterForm: CartaoFilters = { categoriaId: '', cartaoId: '', status: '', period: 'Este Mês' };
+  // Local form state for filters (bound via ngModel), starting from the filters the list is using
+  // (which the ViewModel may have restored when coming back from a form)
+  contaFilterForm: ContaFilters = { ...this.vm.contaFilters };
+  cartaoFilterForm: CartaoFilters = { ...this.vm.cartaoFilters };
 
   // Toggle filter panels
   showContaFilters = false;
   showCartaoFilters = false;
 
   ngOnInit(): void {
+    // The ViewModel dropped account/card filters on its own (banco switch): show what is really applied
+    this.vm.filtersReset$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.contaFilterForm = { ...this.vm.contaFilters };
+      this.cartaoFilterForm = { ...this.vm.cartaoFilters };
+    });
     this.vm.loadAll();
   }
 

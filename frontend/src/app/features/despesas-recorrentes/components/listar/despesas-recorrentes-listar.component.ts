@@ -2,7 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { DespesasRecorrentesListViewModel, DespesaFilters } from './despesas-recorrentes-listar.view-model';
+import { DespesasRecorrentesListViewModel, DespesaFilters, PAGE_SIZE } from './despesas-recorrentes-listar.view-model';
 import { TransacaoModel } from '../../../transacoes/models/transacoes.model';
 import { DespesaRecorrenteModel } from '../../models/despesas-recorrentes.model';
 import { formatData } from './despesas-recorrentes-listar.formatter';
@@ -10,7 +10,6 @@ import { formatData } from './despesas-recorrentes-listar.formatter';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { SelectComponent } from '../../../../shared/components/select/select.component';
 import { ToSelectOptionsPipe } from '../../../../shared/pipes/to-select-options.pipe';
-const PAGE_SIZE = 10;
 
 @Component({
   selector: 'app-despesas-recorrentes-list',
@@ -26,17 +25,20 @@ export class DespesasRecorrentesListComponent implements OnInit {
 
   readonly formatData = formatData;
 
-  // Filter form state
-  pendenteFilterForm: DespesaFilters = { categoriaId: '', period: '' };
-  concluidaFilterForm: DespesaFilters = { categoriaId: '', period: 'Este Mês' };
+  // Filter form state, starting from the filters the list is using (restored when coming back from a form)
+  pendenteFilterForm: DespesaFilters = { ...this.vm.pendenteFilters };
+  concluidaFilterForm: DespesaFilters = { ...this.vm.concluidaFilters };
 
   // Toggle filter panels
   showPendenteFilters = false;
   showConcluidaFilters = false;
 
-  // Pagination
-  pendentePage = 1;
-  concluidaPage = 1;
+  // Pagination — kept in the ViewModel so it survives a trip to a form and back
+  get pendentePage(): number { return this.vm.pendentePage; }
+  set pendentePage(page: number) { this.vm.pendentePage = page; }
+
+  get concluidaPage(): number { return this.vm.concluidaPage; }
+  set concluidaPage(page: number) { this.vm.concluidaPage = page; }
 
   ngOnInit(): void {
     this.vm.loadAll();
@@ -61,12 +63,10 @@ export class DespesasRecorrentesListComponent implements OnInit {
   // ── Pendente filters ──────────────────────────────────────
 
   applyPendenteFilters(): void {
-    this.pendentePage = 1;
     this.vm.applyPendenteFilters({ ...this.pendenteFilterForm });
   }
 
   clearPendenteFilters(): void {
-    this.pendentePage = 1;
     this.pendenteFilterForm = { categoriaId: '', period: '' };
     this.vm.clearPendenteFilters();
   }
@@ -78,12 +78,10 @@ export class DespesasRecorrentesListComponent implements OnInit {
   // ── Concluída filters ─────────────────────────────────────
 
   applyConcluidaFilters(): void {
-    this.concluidaPage = 1;
     this.vm.applyConcluidaFilters({ ...this.concluidaFilterForm });
   }
 
   clearConcluidaFilters(): void {
-    this.concluidaPage = 1;
     this.concluidaFilterForm = { categoriaId: '', period: 'Este Mês' };
     this.vm.clearConcluidaFilters();
   }

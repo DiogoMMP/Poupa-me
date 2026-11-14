@@ -1,8 +1,10 @@
 import { Injectable, inject } from '@angular/core';
-import { BehaviorSubject, Subscription } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { BehaviorSubject, Subscription, skip } from 'rxjs';
 import { CategoriasService } from '../../../categorias/services/categorias.service';
 import { NotificationService } from '../../../../services/notification.service';
 import { SelectedBancoService } from '../../../../services/selected-banco.service';
+import { ListStateService } from '../../../../services/list-state.service';
 import { TransacoesService } from '../../../transacoes/services/transacoes.service';
 import { TransacoesMapper } from '../../../transacoes/mappers/transacoes.mapper';
 import { TransacaoModel } from '../../../transacoes/models/transacoes.model';
@@ -14,6 +16,21 @@ import { DespesaFilters, filterByPeriod } from './despesas-recorrentes-listar.fi
 
 export type { PeriodFilter, DespesaFilters } from './despesas-recorrentes-listar.filter';
 
+/** Items per page in both columns (paginated on the client) */
+export const PAGE_SIZE = 10;
+
+/** Where the list keeps its state in `ListStateService`: the `/despesas-recorrentes` route group */
+const STATE_GROUP = 'despesas-recorrentes';
+const STATE_KEY = 'listar';
+
+/** Filters and pages of both columns, kept while the user navigates inside `/despesas-recorrentes` */
+interface DespesasRecorrentesListState {
+  pendenteFilters: DespesaFilters;
+  concluidaFilters: DespesaFilters;
+  pendentePage: number;
+  concluidaPage: number;
+}
+
 @Injectable()
 export class DespesasRecorrentesListViewModel {
   private transacoesService = inject(TransacoesService);
@@ -21,6 +38,7 @@ export class DespesasRecorrentesListViewModel {
   private categoriasService = inject(CategoriasService);
   private notification = inject(NotificationService);
   private selectedBanco = inject(SelectedBancoService);
+  private listState = inject(ListStateService);
 
   readonly isLoading$ = new BehaviorSubject<boolean>(false);
 
@@ -47,13 +65,45 @@ export class DespesasRecorrentesListViewModel {
   pendenteFilters: DespesaFilters = { categoriaId: '', period: '' };
   concluidaFilters: DespesaFilters = { categoriaId: '', period: 'Este Mês' };
 
+  private _pendentePage = 1;
+  private _concluidaPage = 1;
+
   /** Set of transaction ids currently being processed to prevent duplicate clicks */
   private busyIds = new Set<string>();
 
   readonly PERIODS = ['Este Mês', 'Últimos 3 Meses', 'Último Ano'] as const;
 
   constructor() {
-    this.selectedBanco.selectedBancoId$.subscribe(() => this.loadAll());
+    this.restoreState();
+    // After every (re)load or delete, keep each column's page inside the pages that exist
+    // (skip the initial empty value, which would throw away a restored page)
+    this.pendentes$.pipe(skip(1), takeUntilDestroyed())
+      .subscribe(items => this.pendentePage = Math.min(this.pendentePage, totalPages(items.length)));
+    this.concluidas$.pipe(skip(1), takeUntilDestroyed())
+      .subscribe(items => this.concluidaPage = Math.min(this.concluidaPage, totalPages(items.length)));
+    this.selectedBanco.selectedBancoId$.pipe(takeUntilDestroyed()).subscribe(() => this.loadAll());
+  }
+
+  /** Current page of the Pendente column */
+  get pendentePage(): number {
+    return this._pendentePage;
+  }
+
+  set pendentePage(page: number) {
+    if (page === this._pendentePage) return;
+    this._pendentePage = page;
+    this.saveState();
+  }
+
+  /** Current page of the Concluído column */
+  get concluidaPage(): number {
+    return this._concluidaPage;
+  }
+
+  set concluidaPage(page: number) {
+    if (page === this._concluidaPage) return;
+    this._concluidaPage = page;
+    this.saveState();
   }
 
   get bancoId(): string | null {
@@ -63,6 +113,10 @@ export class DespesasRecorrentesListViewModel {
   /** Load categories then refresh both columns and sem-valor list */
   loadAll(): void {
     this.allSub?.unsubscribe();
+    // Cancel the columns' requests now, not when the categories arrive: a late answer for the previous
+    // banco would otherwise publish its items and clamp (and save) the pages against them
+    this.pendentesSub?.unsubscribe();
+    this.concluidasSub?.unsubscribe();
     this.isLoading$.next(true);
     this.allSub = this.categoriasService.getAll().subscribe({
       next: cats => {
@@ -146,11 +200,15 @@ export class DespesasRecorrentesListViewModel {
 
   applyPendenteFilters(filters: DespesaFilters): void {
     this.pendenteFilters = { ...filters };
+    this._pendentePage = 1;
+    this.saveState();
     this.loadPendentes();
   }
 
   clearPendenteFilters(): void {
     this.pendenteFilters = { categoriaId: '', period: '' };
+    this._pendentePage = 1;
+    this.saveState();
     this.loadPendentes();
   }
 
@@ -202,12 +260,37 @@ export class DespesasRecorrentesListViewModel {
 
   applyConcluidaFilters(filters: DespesaFilters): void {
     this.concluidaFilters = { ...filters };
+    this._concluidaPage = 1;
+    this.saveState();
     this.loadConcluidas();
   }
 
   clearConcluidaFilters(): void {
     this.concluidaFilters = { categoriaId: '', period: 'Este Mês' };
+    this._concluidaPage = 1;
+    this.saveState();
     this.loadConcluidas();
+  }
+
+  // ── State kept while navigating inside /despesas-recorrentes ──
+
+  /** Take over the filters and pages saved by the previous list (e.g. before opening a form) */
+  private restoreState(): void {
+    const saved = this.listState.get<DespesasRecorrentesListState>(STATE_GROUP, STATE_KEY);
+    if (!saved) return;
+    this.pendenteFilters = saved.pendenteFilters;
+    this.concluidaFilters = saved.concluidaFilters;
+    this._pendentePage = saved.pendentePage;
+    this._concluidaPage = saved.concluidaPage;
+  }
+
+  private saveState(): void {
+    this.listState.set<DespesasRecorrentesListState>(STATE_GROUP, STATE_KEY, {
+      pendenteFilters: this.pendenteFilters,
+      concluidaFilters: this.concluidaFilters,
+      pendentePage: this._pendentePage,
+      concluidaPage: this._concluidaPage
+    });
   }
 
   // ── Helpers ───────────────────────────────────────────────
@@ -294,3 +377,6 @@ export class DespesasRecorrentesListViewModel {
     });
   }
 }
+
+/** Number of pages for a column with `count` items (at least 1) */
+const totalPages = (count: number): number => Math.max(1, Math.ceil(count / PAGE_SIZE));
