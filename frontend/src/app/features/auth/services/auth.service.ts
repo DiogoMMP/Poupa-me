@@ -11,6 +11,7 @@ import { catchError } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { UtilizadoresService } from '../../utilizadores/services/utilizadores.service';
 import { SelectedBancoService } from '../../../services/selected-banco.service';
+import { ListStateService } from '../../../services/list-state.service';
 
 export type Role = 'Admin' | 'Guest' | 'User'
 
@@ -28,6 +29,7 @@ export class AuthService {
   private router = inject(Router);
   private users = inject(UtilizadoresService);
   private selectedBanco = inject(SelectedBancoService);
+  private listState = inject(ListStateService);
   private platformId = inject(PLATFORM_ID);
 
   private readonly TOKEN_KEY = 'auth_token';
@@ -125,6 +127,7 @@ export class AuthService {
     this.clearToken();
     this.clearUserFromStorage();
     this.selectedBanco.clearSelection();
+    this.listState.clear();
 
     firstValueFrom(this.users.logout()).catch(() => {
       // ignore
