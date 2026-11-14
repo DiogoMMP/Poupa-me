@@ -1,40 +1,56 @@
-import { Component, inject, ViewChild, ElementRef, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, ViewChild, ElementRef, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router';
 import { createPicker } from 'picmo';
 import { CategoriasCriarViewModel } from './categorias-criar.view-model';
+import { PAPEL_OPTIONS } from '../editar/categorias-editar.view-model';
 
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
+import { SelectComponent } from '../../../../shared/components/select/select.component';
 /**
  * Component to create a new category.
- * Provides a form where the user can enter the category name and choose an icon (emoji),
+ * Provides a form where the user can enter the category name, choose an icon (emoji) and its group,
  * then submit to create a new category record.
  */
 @Component({
   selector: 'app-categorias-criar',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule, IconComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, IconComponent, SelectComponent],
   templateUrl: './categorias-criar.component.html',
   styleUrls: ['./categorias-criar.component.css'],
   providers: [CategoriasCriarViewModel]
 })
-export class CategoriasCriarComponent implements OnDestroy {
+export class CategoriasCriarComponent implements OnInit, OnDestroy {
   public vm = inject(CategoriasCriarViewModel);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
+  private route = inject(ActivatedRoute);
 
   @ViewChild('emojiPickerContainer') pickerContainer!: ElementRef<HTMLElement>;
 
   form: FormGroup;
+  readonly papelOptions = PAPEL_OPTIONS;
   showEmojiPicker = false;
   private picker: any = null;
 
   constructor() {
     this.form = this.fb.group({
       nome: ['', Validators.required],
-      icon: ['', Validators.required]
+      icon: ['', Validators.required],
+      grupoId: ['', Validators.required],
+      papel: ['']
     });
+  }
+
+  /**
+   * On init, load the grupos for the "Grupo" select. When opened from a grupo's "Criar categoria" button
+   * (`?grupo=<id>`), the grupo comes already selected.
+   */
+  ngOnInit() {
+    this.vm.loadGrupos();
+    const grupoId = this.route.snapshot.queryParamMap.get('grupo');
+    if (grupoId) this.form.patchValue({ grupoId });
   }
 
   /**

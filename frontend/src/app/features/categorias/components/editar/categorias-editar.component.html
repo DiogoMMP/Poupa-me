@@ -19,6 +19,17 @@
       </div>
 
       <div class="form-field">
+        <label class="form-label">Grupo</label>
+        <app-select [options]="(vm.grupoOptions$ | async) ?? []" formControlName="grupoId"
+          placeholder="Sem grupo" ariaLabel="Grupo"></app-select>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Papel</label>
+        <app-select [options]="papelOptions" formControlName="papel" ariaLabel="Papel"></app-select>
+      </div>
+
+      <div class="form-field">
         <label for="icon" class="form-label">Ícone</label>
         <div class="emoji-input-group">
           <input

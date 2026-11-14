@@ -102,7 +102,7 @@ export class TransacoesCriarReembolsoViewModel {
   }
 
   private loadCategorias(): void {
-    this.categoriasService.getAll().subscribe({
+    this.categoriasService.getAll('Entrada').subscribe({
       next: (dtos) => this.categorias$.next(dtos as CategoriasModel[]),
       error: () => this.categorias$.next([])
     });

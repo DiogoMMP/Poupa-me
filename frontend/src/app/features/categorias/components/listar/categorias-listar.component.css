@@ -1,0 +1,115 @@
+.grupos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.grupo-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.grupo-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Título do grupo: texto simples, sem ícone nem cor do grupo */
+.grupo-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--brand-text);
+  font-family: 'Oswald', sans-serif;
+}
+
+.grupo-tipo {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.grupo-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.grupo-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: rgba(226, 232, 240, 0.6);
+  cursor: grab;
+}
+
+.grupo-handle:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  transform: none;
+  box-shadow: none;
+}
+
+.grupo-vazio {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.6);
+  font-size: 0.9rem;
+}
+
+.categoria-card {
+  cursor: grab;
+}
+
+/* Todas as linhas da grelha de um grupo têm a altura do card mais alto desse grupo */
+.categorias-grid {
+  grid-auto-rows: 1fr;
+}
+
+/* Etiqueta do papel, no estilo das etiquetas de tipo das regras de despesas recorrentes */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(97, 237, 214, 0.15);
+  color: var(--brand-accent);
+  border: 1px solid rgba(97, 237, 214, 0.3);
+  white-space: nowrap;
+}
+
+.categoria-papel {
+  margin-top: 0.25rem;
+}
+
+/* Drag-and-drop (CDK) */
+.cdk-drag-preview {
+  box-sizing: border-box;
+  opacity: 0.9;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+}
+
+.cdk-drag-animating,
+.cdk-drop-list-dragging .cdk-drag {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+@media (max-width: 768px) {
+  .grupo-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+}

@@ -1,0 +1,29 @@
+/* Amostras de cor: círculos com a cor sólida da paleta */
+.cor-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cor-swatch {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.cor-swatch:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: none;
+}
+
+.cor-swatch.selected {
+  outline: 2px solid var(--brand-text);
+  outline-offset: 2px;
+}

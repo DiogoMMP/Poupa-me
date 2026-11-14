@@ -1,11 +1,20 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { CategoriasService } from '../../services/categorias.service';
 import { NotificationService } from '../../../../services/notification.service';
 import { CategoriasModel } from '../../models/categorias.model';
 import { CategoriasMapper } from '../../mappers/categorias.mapper';
 import { CategoriasInputDTO } from '../../dto/categorias.dto';
+import { GruposCategoriaService } from '../../services/grupos-categoria.service';
+import { AppSelectOption } from '../../../../shared/components/select/select.component';
+
+/** Opções do select "Papel": o valor vazio ("Nenhum") limpa o papel. */
+export const PAPEL_OPTIONS: AppSelectOption[] = [
+  { value: '', label: 'Nenhum' },
+  { value: 'PagamentoCartao', label: 'Pagamento de cartão' }
+];
 
 /**
  * ViewModel for the Categorias Editar component. Handles the logic for loading category data and submitting updates.
@@ -15,10 +24,26 @@ export class CategoriasEditarViewModel {
   private service = inject(CategoriasService);
   private notification = inject(NotificationService);
   private router = inject(Router);
+  private gruposService = inject(GruposCategoriaService);
 
   // State
   readonly isLoading$ = new BehaviorSubject<boolean>(false);
   readonly categoria$ = new BehaviorSubject<CategoriasModel | null>(null);
+  /** Grupos ativos para o select "Grupo", pela ordem do Admin. */
+  readonly grupoOptions$ = new BehaviorSubject<AppSelectOption[]>([]);
+
+  /**
+   * Loads the active grupos for the "Grupo" select.
+   */
+  loadGrupos(): void {
+    this.gruposService.getAll().subscribe({
+      next: (grupos) => this.grupoOptions$.next(grupos.map(g => ({ value: g.id, label: g.nome }))),
+      error: () => {
+        this.grupoOptions$.next([]);
+        this.notification.error('Falha ao carregar grupos');
+      }
+    });
+  }
 
   /**
    * Loads the category data by ID and updates the state accordingly.
@@ -51,7 +76,11 @@ export class CategoriasEditarViewModel {
     const existing = this.categoria$.getValue();
     const payload: CategoriasInputDTO = {
       nome: formData.nome !== undefined ? formData.nome : (existing?.nome || ''),
-      icon: formData.icon !== undefined ? formData.icon : (existing?.icon || '')
+      icon: formData.icon !== undefined ? formData.icon : (existing?.icon || ''),
+      // Sem grupo escolhido (categoria antiga ainda em "Sem grupo") não se envia: não é possível voltar a "Sem grupo"
+      grupoId: formData.grupoId || undefined,
+      // "Nenhum" (valor vazio) limpa o papel
+      papel: formData.papel || null
     };
 
     this.isLoading$.next(true);
@@ -62,8 +91,8 @@ export class CategoriasEditarViewModel {
         this.isLoading$.next(false);
         this.router.navigate(['/categorias']);
       },
-      error: (_err) => {
-        this.notification.error('Falha ao atualizar categoria');
+      error: (err: HttpErrorResponse) => {
+        this.notification.error(err?.error?.error ?? 'Falha ao atualizar categoria');
         this.isLoading$.next(false);
       }
     });

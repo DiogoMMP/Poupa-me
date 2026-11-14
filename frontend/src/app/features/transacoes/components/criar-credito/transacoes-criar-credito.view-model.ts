@@ -102,7 +102,7 @@ export class TransacoesCriarCreditoViewModel {
   }
 
   private loadCategorias(): void {
-    this.categoriasService.getAll().subscribe({
+    this.categoriasService.getAll('Saída').subscribe({
       next: (dtos) => this.categorias$.next(dtos as CategoriasModel[]),
       error: () => this.categorias$.next([])
     });

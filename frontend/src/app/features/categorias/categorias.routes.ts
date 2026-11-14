@@ -16,5 +16,16 @@ export const routes: Routes = [
   {
     path: 'editar/:id',
     loadComponent: () => import('./components/editar/categorias-editar.component').then(m => m.CategoriasEditarComponent)
+  },
+
+  // Grupos de categorias (herdam allowedRoles: ['Admin'] da rota pai em app.routes.ts)
+  {
+    path: 'grupos/criar',
+    loadComponent: () => import('./components/grupos-criar/grupos-criar.component').then(m => m.GruposCriarComponent)
+  },
+  { path: 'grupos/editar', redirectTo: '', pathMatch: 'full' },
+  {
+    path: 'grupos/editar/:id',
+    loadComponent: () => import('./components/grupos-editar/grupos-editar.component').then(m => m.GruposEditarComponent)
   }
 ];
