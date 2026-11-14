@@ -1,4 +1,19 @@
-:host {
+/* O componente usa ViewEncapsulation.None, por isso `:host` não se aplicaria: o seletor é o próprio elemento.
+   O card ocupa a altura toda da célula da grelha, e as ações ficam encostadas ao fundo, para que cards da mesma
+   linha (ou da mesma grelha, com `grid-auto-rows: 1fr`) fiquem do mesmo tamanho e alinhados. */
+app-entity-card {
   display: block;
   height: 100%;
+}
+
+app-entity-card > .card {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* `margin-top: auto` encosta as ações ao fundo, mas anula o `margin-top: 1rem` global de `.card-actions`;
+   o `padding-top` repõe esse espaço mínimo entre o conteúdo e os botões. */
+app-entity-card > .card > .card-actions {
+  margin-top: auto;
+  padding-top: 1.25rem;
 }
