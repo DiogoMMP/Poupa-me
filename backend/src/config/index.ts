@@ -36,6 +36,11 @@ export default {
             path: '../repos/Categoria/CategoriaRepo.js'
         },
 
+        grupoCategoria: {
+            name: 'GrupoCategoriaRepo',
+            path: '../repos/GrupoCategoria/GrupoCategoriaRepo.js'
+        },
+
         transacao: {
             name: 'TransacaoRepo',
             path: '../repos/Transacao/TransacaoRepo.js'
@@ -106,6 +111,11 @@ export default {
             path: '../services/Categoria/CategoriaService.js'
         },
 
+        grupoCategoria: {
+            name: 'GrupoCategoriaService',
+            path: '../services/GrupoCategoria/GrupoCategoriaService.js'
+        },
+
         transacao: {
             name: 'TransacaoService',
             path: '../services/Transacao/TransacaoService.js'
@@ -170,6 +180,11 @@ export default {
         categoria: {
             name: 'CategoriaController',
             path: '../controllers/Categoria/CategoriaController.js'
+        },
+
+        grupoCategoria: {
+            name: 'GrupoCategoriaController',
+            path: '../controllers/GrupoCategoria/GrupoCategoriaController.js'
         },
 
         transacao: {

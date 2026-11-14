@@ -29,5 +29,10 @@ export default interface ICategoriaController {
      * Deletes a Categoria by domain ID
      */
     deleteCategoriaByDomainId(req: Request, res: Response, next: NextFunction): Promise<Response | void>;
+
+    /**
+     * Rewrites the order of the Categorias of a group
+     */
+    reordenarCategorias(req: Request, res: Response, next: NextFunction): Promise<Response | void>;
 }
 

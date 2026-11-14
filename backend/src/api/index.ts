@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import authRoute from "./routes/AuthRoute.js";
 import categoriaRoute from "./routes/CategoriaRoute.js";
+import grupoCategoriaRoute from "./routes/GrupoCategoriaRoute.js";
 import transacaoRoute from "./routes/Transacao/index.js";
 import contaRoute from "./routes/ContaRoute.js";
 import cartaoCreditoRoute from "./routes/CartaoCreditoRoute.js";
@@ -22,6 +23,9 @@ export default () => {
 
 	// Register Categoria routes
 	categoriaRoute(app)
+
+	// Register GrupoCategoria routes
+	grupoCategoriaRoute(app)
 
 	// Register Transacao routes
 	transacaoRoute(app);

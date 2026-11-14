@@ -14,7 +14,8 @@ export interface IDespesaRecorrenteDTO {
     icon: string;
     valor?: IDinheiroDTO;
     diaDoMes?: number;
-    categoria: ICategoriaDTO;
+    // Só id, nome e ícone: a regra resolve a categoria por um mapa de nomes, sem grupo/ordem/papel.
+    categoria: Pick<ICategoriaDTO, 'id' | 'nome' | 'icon'>;
     contaOrigem: IEntityReferenceDTO;
     contaDestino?: IEntityReferenceDTO;
     contaPoupanca?: IEntityReferenceDTO;

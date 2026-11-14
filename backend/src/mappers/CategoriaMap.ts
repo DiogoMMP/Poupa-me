@@ -3,6 +3,7 @@ import { Result } from '../core/logic/Result.js';
 import { Categoria } from "../domain/Categoria/Entities/Categoria.js";
 import { Icon } from "../domain/Shared/ValueObjects/Icon.js";
 import { Nome } from "../domain/Shared/ValueObjects/Nome.js";
+import { PapelCategoria } from "../domain/Categoria/ValueObjects/PapelCategoria.js";
 import { UniqueEntityID } from '../core/domain/UniqueEntityID.js';
 import type { ICategoriaDTO } from '../dto/ICategoriaDTO.js';
 
@@ -38,10 +39,21 @@ export class CategoriaMap extends Mapper<Categoria> {
             return null;
         }
 
+        // The group is only known when the `grupo` relation was loaded; nested categorias (e.g. inside a transação)
+        // are mapped without it and stay without grupoId.
+        const grupo = r.grupo as Record<string, unknown> | null | undefined;
+        const grupoDomainId = grupo?.domainId as string | undefined;
+
+        // An unknown papel is ignored rather than making the whole categoria unreadable.
+        const papelResult = r.papel ? PapelCategoria.create(r.papel as string) : null;
+
         const categoriaOrError = Categoria.create(
             {
                 nome: nameResult.getValue(),
-                icon: iconResult.getValue()
+                icon: iconResult.getValue(),
+                grupoId: grupoDomainId ? new UniqueEntityID(grupoDomainId) : undefined,
+                ordem: typeof r.ordem === 'number' ? r.ordem : undefined,
+                papel: papelResult?.isSuccess ? papelResult.getValue() : undefined
             },
             new UniqueEntityID((r.domainId as string) || (r.id as string))
         );
@@ -52,7 +64,7 @@ export class CategoriaMap extends Mapper<Categoria> {
     /**
      * Converts a Categoria domain entity to a persistence format. This method takes a Categoria instance and transforms it
      * into a plain JavaScript object that can be easily stored in a database. The resulting object includes the domain ID,
-     * nome, and icon properties of the Categoria entity. This method is crucial for ensuring that the data is correctly
+     * nome, icon, ordem and papel of the Categoria entity (the group relation is resolved by the repository). This method is crucial for ensuring that the data is correctly
      * formatted for persistence while maintaining the necessary information from the domain entity.
      * @param categoria - The Categoria domain entity that needs to be converted into a persistence format. This object
      * contains the properties and values that represent the state of the Categoria in the domain model.
@@ -63,7 +75,9 @@ export class CategoriaMap extends Mapper<Categoria> {
         return {
             domainId: categoria.id.toString(),
             nome: categoria.nome.value,
-            icon: categoria.icon.value
+            icon: categoria.icon.value,
+            ordem: categoria.ordem,
+            papel: categoria.papel?.value ?? null
         };
     }
 
@@ -81,7 +95,10 @@ export class CategoriaMap extends Mapper<Categoria> {
         return {
             id: categoria.id.toString(),
             nome: categoria.nome.value,
-            icon: categoria.icon.value
+            icon: categoria.icon.value,
+            grupoId: categoria.grupoId?.toString() ?? null,
+            ordem: categoria.ordem,
+            papel: categoria.papel?.value ?? null
         };
     }
 }
