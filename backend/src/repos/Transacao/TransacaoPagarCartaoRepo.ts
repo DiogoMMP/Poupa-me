@@ -29,6 +29,7 @@ export default class TransacaoPagarCartaoRepo implements ITransacaoPagarCartaoRe
      * @param periodoAntigo - Period to filter transactions (inicio and fecho dates), before payment.
      * @param novoSaldoUtilizado - The card's saldoUtilizado after this payment is applied.
      * @param novoPeriodo - The card's new period after this payment.
+     * @param categoriaId - Domain ID of the categoria for the payment record (the one with the papel 'PagamentoCartao').
      * @returns The created payment transaction.
      */
     public async pagarCartao(
@@ -37,7 +38,8 @@ export default class TransacaoPagarCartaoRepo implements ITransacaoPagarCartaoRe
         userId: string,
         periodoAntigo: { inicio: Date; fecho: Date },
         novoSaldoUtilizado: number,
-        novoPeriodo: { inicio: Date; fecho: Date }
+        novoPeriodo: { inicio: Date; fecho: Date },
+        categoriaId: string
     ): Promise<Transacao> {
         try {
             return await this.dataSource.transaction(async (manager) => {
@@ -86,12 +88,9 @@ export default class TransacaoPagarCartaoRepo implements ITransacaoPagarCartaoRe
                 // 3. Create the payment record directly (not via TransacaoRepo.save, so this stays
                 // scoped to this transaction's manager without threading it through that shared method)
                 const categoriaRepo = manager.getRepository(CategoriaEntity);
-                const categoriaRow = await categoriaRepo.createQueryBuilder('cat')
-                    .orderBy('cat.id', 'ASC')
-                    .limit(1)
-                    .getOne();
+                const categoriaRow = await categoriaRepo.findOne({ where: { domainId: categoriaId, isActive: true } });
 
-                if (!categoriaRow) throw new Error('No categoria found for payment');
+                if (!categoriaRow) throw new Error('Categoria for payment not found or inactive');
 
                 const now = new Date();
                 const year = now.getFullYear();

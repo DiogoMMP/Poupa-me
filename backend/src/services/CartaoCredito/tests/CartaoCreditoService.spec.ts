@@ -77,10 +77,13 @@ describe('CartaoCreditoService.pagarCartao — atomic payment orchestration', ()
   // pagarCartao valida que a conta de pagamento está ativa (findActiveById); o mock é definido em cada teste
   const contaRepo = { findActiveById: jest.fn() };
 
+  // pagarCartao resolve a categoria do pagamento pelo papel 'PagamentoCartao' (F0008); o mock é definido no teste
+  const categoriaRepo = { findActiveByPapel: jest.fn<ICategoriaRepo['findActiveByPapel']>() };
+
   const service = new CartaoCreditoService(
     cartaoRepo,
     transacaoRepo,
-    {} as unknown as ICategoriaRepo,
+    categoriaRepo as unknown as ICategoriaRepo,
     contaRepo,
     {} as unknown as IBancoRepo,
     userRepo as unknown as IUserRepo,
@@ -99,6 +102,7 @@ describe('CartaoCreditoService.pagarCartao — atomic payment orchestration', ()
     cartaoRepo.findById.mockResolvedValue(cartao); // usado pelo getExtrato
     cartaoRepo.findActiveById.mockResolvedValue(cartao);
     contaRepo.findActiveById.mockResolvedValue({} as never);
+    categoriaRepo.findActiveByPapel.mockResolvedValue(paymentTransacao.categoria);
     userRepo.findByDomainId.mockResolvedValue(undefined as unknown as Awaited<ReturnType<IUserRepo['findByDomainId']>>);
     transacaoRepo.pagarCartao.mockResolvedValue(paymentTransacao);
 

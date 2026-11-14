@@ -7,6 +7,7 @@ export default interface ITransacaoPagarCartaoRepo {
      * @param periodoAntigo - The card's period before payment, used to select which transactions to mark.
      * @param novoSaldoUtilizado - The card's saldoUtilizado after this payment is applied.
      * @param novoPeriodo - The card's new period after this payment.
+     * @param categoriaId - Domain ID of the (active) categoria with the papel 'PagamentoCartao'.
      */
     pagarCartao(
         cartaoCreditoId: string,
@@ -14,7 +15,8 @@ export default interface ITransacaoPagarCartaoRepo {
         userId: string,
         periodoAntigo: { inicio: Date; fecho: Date },
         novoSaldoUtilizado: number,
-        novoPeriodo: { inicio: Date; fecho: Date }
+        novoPeriodo: { inicio: Date; fecho: Date },
+        categoriaId: string
     ): Promise<Transacao>;
 }
 
