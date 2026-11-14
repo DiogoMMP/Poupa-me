@@ -113,6 +113,10 @@ export class DespesasRecorrentesListViewModel {
   /** Load categories then refresh both columns and sem-valor list */
   loadAll(): void {
     this.allSub?.unsubscribe();
+    // Cancel the columns' requests now, not when the categories arrive: a late answer for the previous
+    // banco would otherwise publish its items and clamp (and save) the pages against them
+    this.pendentesSub?.unsubscribe();
+    this.concluidasSub?.unsubscribe();
     this.isLoading$.next(true);
     this.allSub = this.categoriasService.getAll().subscribe({
       next: cats => {
