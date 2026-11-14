@@ -63,6 +63,8 @@ Nenhum.
 | 1 | Despesas Recorrentes: ao mudar de banco, uma resposta atrasada das colunas do banco anterior ainda publica os itens e corta (e grava) a página | Válido: `loadAll()` só cancelava `allSub`; os pedidos das colunas só eram cancelados quando chegavam as categorias do banco novo | `loadAll()` cancela `pendentesSub`/`concluidasSub` logo no início. Teste com respostas do banco anterior atrasadas (`Subject`): falha contra o código antigo (página 3 → 2) e passa com a correção |
 | 2 | Transações: os pedidos de página não são cancelados quando o ViewModel é destruído; uma resposta atrasada no ramo "página para lá do fim" grava estado da instância morta | Válido: `allSub`/`contaSub`/`cartaoSub` só eram cancelados ao recarregar | `pipe(takeUntilDestroyed(this.destroyRef))` nos três pedidos. Além do que o bot sugeriu: `loadAll`/`loadContaTransacoes`/`loadCartaoTransacoes` não fazem nada depois da destruição, porque o `deleteTransacao` (que não é cancelado, para não abortar um DELETE) recarrega a coluna quando a resposta chega, e `takeUntilDestroyed` num `DestroyRef` já destruído lança NG0911. Teste com o ViewModel num injector destruído: falha contra o código antigo (estado recriado e novo pedido) e passa com a correção |
 
+**2.ª ronda (resposta do bot ao finding 1):** o teste não cobria a coluna Concluído, porque o filtro por omissão (`period: 'Este Mês'`) pede `getDespesaRecorrenteByPeriod` e o teste só atrasava `getDespesaRecorrenteByStatus`. Corrigido no spec. Contra o código antigo, as duas colunas falham agora (página 3 → 2).
+
 **Gate depois da revisão:** build OK; testes 26/26.
 
 **Por fazer:** não foi feito novo teste manual na app depois destas correções.
