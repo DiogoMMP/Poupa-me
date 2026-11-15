@@ -1,8 +1,9 @@
 import {Injectable} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
-import {Observable} from 'rxjs';
+import {Observable, map} from 'rxjs';
 import {environment} from '../../../../environments/environment';
 import {GrupoCategoriaDTO, GrupoCategoriaInputDTO} from '../dto/categorias.dto';
+import {AppSelectOption} from '../../../shared/components/select/select.component';
 
 @Injectable({providedIn: 'root'})
 export class GruposCategoriaService {
@@ -14,6 +15,11 @@ export class GruposCategoriaService {
   /** Grupos ativos, pela ordem definida pelo Admin. */
   getAll(): Observable<GrupoCategoriaDTO[]> {
     return this.http.get<GrupoCategoriaDTO[]>(this.apiUrl, {withCredentials: true});
+  }
+
+  /** Grupos ativos como opções do select "Grupo" dos forms de categoria (valor = id, rótulo = nome). */
+  getOptions(): Observable<AppSelectOption[]> {
+    return this.getAll().pipe(map(grupos => grupos.map(g => ({ value: g.id, label: g.nome }))));
   }
 
   getById(id: string): Observable<GrupoCategoriaDTO> {

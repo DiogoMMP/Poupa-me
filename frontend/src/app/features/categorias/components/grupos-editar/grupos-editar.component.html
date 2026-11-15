@@ -20,16 +20,7 @@
 
       <div class="form-field">
         <span class="form-label" id="cor-label">Cor</span>
-        <div class="cor-swatches" role="radiogroup" aria-labelledby="cor-label">
-          <button *ngFor="let cor of cores" type="button" class="cor-swatch"
-            role="radio"
-            [attr.aria-checked]="form.get('cor')?.value === cor"
-            [attr.aria-label]="cor"
-            [title]="cor"
-            [class.selected]="form.get('cor')?.value === cor"
-            [style.background]="hex(cor)"
-            (click)="escolherCor(cor)"></button>
-        </div>
+        <app-cor-grupo-picker formControlName="cor" labelledBy="cor-label"></app-cor-grupo-picker>
       </div>
 
       <div class="form-actions">

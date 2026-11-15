@@ -27,8 +27,8 @@ export class CategoriasCriarViewModel {
    * Loads the active grupos for the "Grupo" select.
    */
   loadGrupos(): void {
-    this.gruposService.getAll().subscribe({
-      next: (grupos) => this.grupoOptions$.next(grupos.map(g => ({ value: g.id, label: g.nome }))),
+    this.gruposService.getOptions().subscribe({
+      next: (options) => this.grupoOptions$.next(options),
       error: () => {
         this.grupoOptions$.next([]);
         this.notification.error('Falha ao carregar grupos');

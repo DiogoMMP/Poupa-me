@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { createPicker } from 'picmo';
-import { CategoriasEditarViewModel, PAPEL_OPTIONS } from './categorias-editar.view-model';
+import { CategoriasEditarViewModel } from './categorias-editar.view-model';
+import { PAPEL_OPTIONS } from '../../constants/categorias.constants';
 
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { SelectComponent } from '../../../../shared/components/select/select.component';

@@ -41,9 +41,11 @@ export class CategoriasListViewModel {
   /**
    * Loads the grouped categorias. This method is called when the component initializes and can be
    * called again to refresh the data.
+   * @param silencioso - refresh without showing the loading state, so the page keeps its content (and its scroll
+   * position) while the new data arrives; used after a delete or a failed reorder
    */
-  loadData(): void {
-    this.isLoading$.next(true);
+  loadData(silencioso = false): void {
+    if (!silencioso) this.isLoading$.next(true);
     this.service.getAgrupadas().subscribe({
       next: (agrupadas) => {
         const secoes = agrupadas.map(a => ({
@@ -63,38 +65,28 @@ export class CategoriasListViewModel {
   }
 
   /**
-   * Largada de um grupo: aplica a nova ordem logo e grava-a. Se o pedido falhar, repõe a ordem anterior.
+   * Largada de um grupo: aplica a nova ordem logo e grava-a. Se o pedido falhar, volta a carregar a ordem do servidor.
    */
   dropGrupo(event: CdkDragDrop<SecaoCategorias[]>): void {
     if (event.previousIndex === event.currentIndex) return;
-    const anterior = this.grupos$.getValue();
-    const nova = [...anterior];
+    const nova = [...this.grupos$.getValue()];
     moveItemInArray(nova, event.previousIndex, event.currentIndex);
     this.grupos$.next(nova);
 
-    this.gravarOrdem(
-      this.gruposService.reordenar(nova.map(s => s.grupo!.id)),
-      () => this.grupos$.next(anterior),
-      'Falha ao gravar a ordem dos grupos'
-    );
+    this.gravarOrdem(this.gruposService.reordenar(nova.map(s => s.grupo!.id)), 'Falha ao gravar a ordem dos grupos');
   }
 
   /**
-   * Largada de uma categoria dentro do seu grupo: aplica a nova ordem logo e grava-a. Se o pedido falhar, repõe a
-   * ordem anterior.
+   * Largada de uma categoria dentro do seu grupo: aplica a nova ordem logo e grava-a. Se o pedido falhar, volta a
+   * carregar a ordem do servidor.
    */
   dropCategoria(secao: SecaoCategorias, event: CdkDragDrop<CategoriasModel[]>): void {
     if (event.previousIndex === event.currentIndex) return;
-    const anterior = secao.categorias;
-    const nova = [...anterior];
+    const nova = [...secao.categorias];
     moveItemInArray(nova, event.previousIndex, event.currentIndex);
     secao.categorias = nova;
 
-    this.gravarOrdem(
-      this.service.reordenar(secao.grupo?.id ?? null, nova.map(c => c.id)),
-      () => { secao.categorias = anterior; },
-      'Falha ao gravar a ordem das categorias'
-    );
+    this.gravarOrdem(this.service.reordenar(secao.grupo?.id ?? null, nova.map(c => c.id)), 'Falha ao gravar a ordem das categorias');
   }
 
   /**
@@ -108,7 +100,7 @@ export class CategoriasListViewModel {
     this.gruposService.delete(grupo.id).subscribe({
       next: () => {
         this.notification.success('Grupo eliminado');
-        this.loadData();
+        this.loadData(true);
       },
       error: (err: HttpErrorResponse) => {
         console.error('[FRONTEND] CategoriasListViewModel.deleteGrupo -', err);
@@ -130,24 +122,26 @@ export class CategoriasListViewModel {
     this.service.delete(id).subscribe({
       next: () => {
         this.notification.success('Categoria eliminada');
-        this.loadData();
+        this.loadData(true);
       },
-      error: (err) => {
+      error: (err: HttpErrorResponse) => {
         console.error('[FRONTEND] CategoriasListViewModel.deleteCategoria -', err);
-        this.notification.error('Falha ao eliminar categoria');
+        this.notification.error(err?.error?.error ?? 'Falha ao eliminar categoria');
       }
     });
   }
 
   /**
-   * Envia um pedido de reordenação; se falhar, corre `repor` e mostra a notificação de erro.
+   * Envia um pedido de reordenação; se falhar, mostra a notificação de erro e volta a carregar a ordem do servidor.
+   * Recarregar (em vez de repor uma cópia da lista de antes da largada) mantém o ecrã certo mesmo quando duas
+   * largadas seguidas se sobrepõem e só a primeira falha.
    */
-  private gravarOrdem(pedido: Observable<unknown>, repor: () => void, mensagem: string): void {
+  private gravarOrdem(pedido: Observable<unknown>, mensagem: string): void {
     pedido.subscribe({
       error: (err: HttpErrorResponse) => {
         console.error('[FRONTEND] CategoriasListViewModel.gravarOrdem -', err);
-        repor();
         this.notification.error(err?.error?.error ?? mensagem);
+        this.loadData(true);
       }
     });
   }

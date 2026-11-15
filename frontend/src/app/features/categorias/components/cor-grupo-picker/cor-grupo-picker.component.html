@@ -1,0 +1,11 @@
+<div class="cor-swatches" role="radiogroup" [attr.aria-labelledby]="labelledBy">
+  <button *ngFor="let cor of cores" type="button" class="cor-swatch"
+    role="radio"
+    [attr.aria-checked]="value() === cor"
+    [attr.aria-label]="cor"
+    [title]="cor"
+    [class.selected]="value() === cor"
+    [disabled]="disabled()"
+    [style.background]="hex(cor)"
+    (click)="escolher(cor)"></button>
+</div>

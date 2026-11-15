@@ -10,12 +10,6 @@ import { CategoriasInputDTO } from '../../dto/categorias.dto';
 import { GruposCategoriaService } from '../../services/grupos-categoria.service';
 import { AppSelectOption } from '../../../../shared/components/select/select.component';
 
-/** Opções do select "Papel": o valor vazio ("Nenhum") limpa o papel. */
-export const PAPEL_OPTIONS: AppSelectOption[] = [
-  { value: '', label: 'Nenhum' },
-  { value: 'PagamentoCartao', label: 'Pagamento de cartão' }
-];
-
 /**
  * ViewModel for the Categorias Editar component. Handles the logic for loading category data and submitting updates.
  */
@@ -36,8 +30,8 @@ export class CategoriasEditarViewModel {
    * Loads the active grupos for the "Grupo" select.
    */
   loadGrupos(): void {
-    this.gruposService.getAll().subscribe({
-      next: (grupos) => this.grupoOptions$.next(grupos.map(g => ({ value: g.id, label: g.nome }))),
+    this.gruposService.getOptions().subscribe({
+      next: (options) => this.grupoOptions$.next(options),
       error: () => {
         this.grupoOptions$.next([]);
         this.notification.error('Falha ao carregar grupos');

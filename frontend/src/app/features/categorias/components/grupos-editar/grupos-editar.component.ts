@@ -4,12 +4,10 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { GruposEditarViewModel } from './grupos-editar.view-model';
-import { TIPO_GRUPO_OPTIONS } from '../grupos-criar/grupos-criar.component';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { SelectComponent } from '../../../../shared/components/select/select.component';
-import {
-  CHAVES_CORES_GRUPO, CORES_GRUPO, CorGrupo
-} from '../../../../shared/constants/cores-grupo';
+import { CorGrupoPickerComponent } from '../cor-grupo-picker/cor-grupo-picker.component';
+import { TIPO_GRUPO_OPTIONS } from '../../constants/categorias.constants';
 
 /**
  * Component to edit a grupo de categorias: nome, tipo and colour.
@@ -17,9 +15,8 @@ import {
 @Component({
   selector: 'app-grupos-editar',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule, IconComponent, SelectComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, IconComponent, SelectComponent, CorGrupoPickerComponent],
   templateUrl: './grupos-editar.component.html',
-  styleUrls: ['./grupos-editar.component.css'],
   providers: [GruposEditarViewModel]
 })
 export class GruposEditarComponent implements OnInit, OnDestroy {
@@ -29,7 +26,6 @@ export class GruposEditarComponent implements OnInit, OnDestroy {
   private sub?: Subscription;
 
   readonly tipoOptions = TIPO_GRUPO_OPTIONS;
-  readonly cores = CHAVES_CORES_GRUPO;
 
   form: FormGroup;
   id = '';
@@ -56,14 +52,6 @@ export class GruposEditarComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.sub?.unsubscribe();
-  }
-
-  /** Hex sólido da cor, para a amostra do seletor. */
-  hex(cor: CorGrupo): string { return CORES_GRUPO[cor]; }
-
-
-  escolherCor(cor: CorGrupo): void {
-    this.form.patchValue({ cor });
   }
 
   onSubmit() {

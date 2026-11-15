@@ -3,8 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { createPicker } from 'picmo';
+import { Subscription, filter, take } from 'rxjs';
 import { CategoriasCriarViewModel } from './categorias-criar.view-model';
-import { PAPEL_OPTIONS } from '../editar/categorias-editar.view-model';
+import { PAPEL_OPTIONS } from '../../constants/categorias.constants';
 
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { SelectComponent } from '../../../../shared/components/select/select.component';
@@ -26,6 +27,7 @@ export class CategoriasCriarComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
   private route = inject(ActivatedRoute);
+  private grupoSub?: Subscription;
 
   @ViewChild('emojiPickerContainer') pickerContainer!: ElementRef<HTMLElement>;
 
@@ -49,14 +51,28 @@ export class CategoriasCriarComponent implements OnInit, OnDestroy {
    */
   ngOnInit() {
     this.vm.loadGrupos();
+    this.preencherGrupoDoLink();
+  }
+
+  /**
+   * Aplica o `?grupo=<id>` só depois de os grupos chegarem e só se o grupo existir: um link antigo, de um grupo
+   * entretanto apagado, deixa o campo por escolher em vez de o preencher com um valor que o select não mostra.
+   */
+  private preencherGrupoDoLink(): void {
     const grupoId = this.route.snapshot.queryParamMap.get('grupo');
-    if (grupoId) this.form.patchValue({ grupoId });
+    if (!grupoId) return;
+    this.grupoSub = this.vm.grupoOptions$
+      .pipe(filter(options => options.length > 0), take(1))
+      .subscribe(options => {
+        if (options.some(o => o.value === grupoId)) this.form.patchValue({ grupoId });
+      });
   }
 
   /**
    * On destroy, we make sure to clean up the emoji picker instance to avoid memory leaks.
    */
   ngOnDestroy() {
+    this.grupoSub?.unsubscribe();
     this.destroyPicker();
   }
 
