@@ -18,14 +18,16 @@ export const routes: Routes = [
     loadComponent: () => import('./components/editar/categorias-editar.component').then(m => m.CategoriasEditarComponent)
   },
 
-  // Grupos de categorias (herdam allowedRoles: ['Admin'] da rota pai em app.routes.ts)
+  // Grupos de categorias: só Admin (como a rota pai em app.routes.ts), declarado em cada rota como as outras features
   {
     path: 'grupos/criar',
-    loadComponent: () => import('./components/grupos-criar/grupos-criar.component').then(m => m.GruposCriarComponent)
+    loadComponent: () => import('./components/grupos-criar/grupos-criar.component').then(m => m.GruposCriarComponent),
+    data: { allowedRoles: ['Admin'] }
   },
   { path: 'grupos/editar', redirectTo: '', pathMatch: 'full' },
   {
     path: 'grupos/editar/:id',
-    loadComponent: () => import('./components/grupos-editar/grupos-editar.component').then(m => m.GruposEditarComponent)
+    loadComponent: () => import('./components/grupos-editar/grupos-editar.component').then(m => m.GruposEditarComponent),
+    data: { allowedRoles: ['Admin'] }
   }
 ];

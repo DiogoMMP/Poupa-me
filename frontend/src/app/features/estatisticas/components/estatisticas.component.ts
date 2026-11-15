@@ -6,7 +6,7 @@ import { signal } from '@angular/core';
 import { EstatisticasViewModel, GastosGrupo } from './estatisticas.view-model';
 import { FormsModule } from '@angular/forms';
 import { NgxChartsModule } from '@swimlane/ngx-charts';
-import { map } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { SelectComponent, AppSelectOption } from '../../../shared/components/select/select.component';
@@ -92,12 +92,15 @@ export class EstatisticasComponent implements OnInit {
 
   /** Uma fatia por grupo. */
   pieGruposData$ = this.gastosPorGrupo$.pipe(
-    map(grupos => grupos.map(g => ({ name: g.nome, value: g.total })))
+    // A fatia é identificada pela chave do grupo, não pelo nome: um grupo apagado e outro novo podem ter o mesmo nome
+    // nas estatísticas, e o ngx-charts junta cores e cliques por `name`. O nome mostrado vem de `nomePorChave`.
+    tap(grupos => { this.nomePorChave = new Map(grupos.map(g => [g.chave, g.nome])); }),
+    map(grupos => grupos.map(g => ({ name: g.chave, value: g.total })))
   );
 
   /** Cor de cada fatia = cor do grupo (`customColors` do ngx-charts, pelo nome da fatia). */
   pieGruposColors$ = this.gastosPorGrupo$.pipe(
-    map(grupos => grupos.map(g => ({ name: g.nome, value: g.cor })))
+    map(grupos => grupos.map(g => ({ name: g.chave, value: g.cor })))
   );
 
   /** Donut das categorias do grupo aberto no detalhe. */
@@ -116,16 +119,19 @@ export class EstatisticasComponent implements OnInit {
   }
 
   /** Tooltip dos donuts: nome e valor em euros. */
+  /** Chave → nome dos grupos do donut "Por grupo" (as fatias desse donut usam a chave como `name`). */
+  private nomePorChave = new Map<string, string>();
+
   readonly tooltipEuro = (arc: { data: { name: string; value: number } }): string =>
-    `<span class="tooltip-label">${escaparHtml(String(arc.data.name))}</span>` +
+    `<span class="tooltip-label">${escaparHtml(this.nomePorChave.get(String(arc.data.name)) ?? String(arc.data.name))}</span>` +
     `<span class="tooltip-val">${FORMATO_EURO.format(Number(arc.data.value) || 0)} €</span>`;
 
   /**
-   * Clique numa fatia do donut dos grupos: abre o detalhe do grupo com esse nome.
+   * Clique numa fatia do donut dos grupos: abre o detalhe do grupo com essa chave (o `name` da fatia).
    */
   onSelectGrupo(event: { name?: string } | string, grupos: GastosGrupo[]): void {
-    const nome = typeof event === 'string' ? event : event?.name;
-    const grupo = grupos.find(g => g.nome === nome);
+    const chave = typeof event === 'string' ? event : event?.name;
+    const grupo = grupos.find(g => g.chave === chave);
     if (grupo) this.vm.abrirGrupo(grupo.chave);
   }
 

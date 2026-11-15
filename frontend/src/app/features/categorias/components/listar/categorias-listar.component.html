@@ -23,7 +23,7 @@
       </div>
 
       <!-- Grupos: arrastam-se pela pega do cabeçalho -->
-      <div class="grupos-list" cdkDropList [cdkDropListData]="data.grupos" (cdkDropListDropped)="vm.dropGrupo($event)">
+      <div class="grupos-list" cdkDropList [cdkDropListData]="data.grupos" [cdkDropListDisabled]="(vm.aGravar$ | async) ?? false" (cdkDropListDropped)="vm.dropGrupo($event)">
         <section *ngFor="let secao of data.grupos" class="grupo-section" cdkDrag cdkDragLockAxis="y">
           <ng-container *ngTemplateOutlet="secaoTpl; context: { $implicit: secao, arrastavel: true }"></ng-container>
         </section>
@@ -68,6 +68,7 @@
   <div *ngIf="secao.categorias.length > 0" class="cards-grid categorias-grid"
     cdkDropList cdkDropListOrientation="mixed"
     [cdkDropListData]="secao.categorias"
+    [cdkDropListDisabled]="(vm.aGravar$ | async) ?? false"
     (cdkDropListDropped)="vm.dropCategoria(secao, $event)">
     <app-entity-card *ngFor="let categoria of secao.categorias" class="categoria-card" cdkDrag
       [title]="categoria.nome"

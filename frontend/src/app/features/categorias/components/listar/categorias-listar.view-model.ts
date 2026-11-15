@@ -37,6 +37,12 @@ export class CategoriasListViewModel {
   readonly grupos$ = new BehaviorSubject<SecaoCategorias[]>([]);
   /** Secção "Sem grupo", só quando há categorias por arrumar. */
   readonly semGrupo$ = new BehaviorSubject<SecaoCategorias | null>(null);
+  /**
+   * Há uma reordenação (ou a recarga que se segue a uma que falhou) em curso. Enquanto for `true`, as listas não aceitam
+   * outra largada: com pedidos sobrepostos, uma recarga podia trazer uma ordem antiga e a largada seguinte já não
+   * atualizava o ecrã.
+   */
+  readonly aGravar$ = new BehaviorSubject<boolean>(false);
 
   /**
    * Loads the grouped categorias. This method is called when the component initializes and can be
@@ -44,7 +50,7 @@ export class CategoriasListViewModel {
    * @param silencioso - refresh without showing the loading state, so the page keeps its content (and its scroll
    * position) while the new data arrives; used after a delete or a failed reorder
    */
-  loadData(silencioso = false): void {
+  loadData(silencioso = false, aoTerminar?: () => void): void {
     if (!silencioso) this.isLoading$.next(true);
     this.service.getAgrupadas().subscribe({
       next: (agrupadas) => {
@@ -55,11 +61,13 @@ export class CategoriasListViewModel {
         this.grupos$.next(secoes.filter(s => s.grupo !== null));
         this.semGrupo$.next(secoes.find(s => s.grupo === null) ?? null);
         this.isLoading$.next(false);
+        aoTerminar?.();
       },
       error: (err) => {
         console.error('[FRONTEND] CategoriasListViewModel.loadData -', err);
         this.notification.error('Falha ao carregar categorias');
         this.isLoading$.next(false);
+        aoTerminar?.();
       }
     });
   }
@@ -137,11 +145,13 @@ export class CategoriasListViewModel {
    * largadas seguidas se sobrepõem e só a primeira falha.
    */
   private gravarOrdem(pedido: Observable<unknown>, mensagem: string): void {
+    this.aGravar$.next(true);
     pedido.subscribe({
+      next: () => this.aGravar$.next(false),
       error: (err: HttpErrorResponse) => {
         console.error('[FRONTEND] CategoriasListViewModel.gravarOrdem -', err);
         this.notification.error(err?.error?.error ?? mensagem);
-        this.loadData(true);
+        this.loadData(true, () => this.aGravar$.next(false));
       }
     });
   }

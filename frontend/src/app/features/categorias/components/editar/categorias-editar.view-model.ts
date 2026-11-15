@@ -73,9 +73,11 @@ export class CategoriasEditarViewModel {
       icon: formData.icon !== undefined ? formData.icon : (existing?.icon || ''),
       // Sem grupo escolhido (categoria antiga ainda em "Sem grupo") não se envia: não é possível voltar a "Sem grupo"
       grupoId: formData.grupoId || undefined,
-      // "Nenhum" (valor vazio) limpa o papel
-      papel: formData.papel || null
     };
+    // O papel só vai no pedido quando mudou em relação ao carregado: omitido, o backend não lhe mexe. Enviá-lo sempre
+    // tiraria o papel a outra categoria que o tivesse recebido depois de este form abrir. "Nenhum" (vazio) limpa-o.
+    const papel = formData.papel || null;
+    if (papel !== (existing?.papel ?? null)) payload.papel = papel;
 
     this.isLoading$.next(true);
 

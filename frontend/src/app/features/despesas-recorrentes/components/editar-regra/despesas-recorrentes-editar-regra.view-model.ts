@@ -32,14 +32,16 @@ export class DespesasRecorrentesEditarRegraViewModel {
 
   constructor() {
     this.selectedBanco.selectedBancoId$.subscribe(id => this.loadContas(id));
-    this.loadCategorias();
   }
 
   load(id: string): void {
     this.isLoading$.next(true);
     this.service.getById(id).subscribe({
       next: dto => {
-        this.regra$.next(DespesasRecorrentesMapper.toModel(dto));
+        const regra = DespesasRecorrentesMapper.toModel(dto);
+        this.regra$.next(regra);
+        // Depois da regra, para manter a categoria dela no select mesmo que esteja num grupo de Entrada
+        this.loadCategorias(regra.categoriaId);
         this.isLoading$.next(false);
       },
       error: () => {
@@ -59,8 +61,8 @@ export class DespesasRecorrentesEditarRegraViewModel {
     });
   }
 
-  private loadCategorias(): void {
-    this.categoriasService.getAll('Saída').subscribe({
+  private loadCategorias(categoriaAtualId?: string): void {
+    this.categoriasService.getAll('Saída', categoriaAtualId).subscribe({
       next: cats => this.categorias$.next(cats),
       error: () => this.notification.error('Falha ao carregar categorias')
     });
