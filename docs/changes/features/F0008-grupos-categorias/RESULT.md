@@ -87,6 +87,20 @@
   - **`?grupo=` no criar categoria:** só é aplicado depois de os grupos chegarem e se o grupo existir.
   - **Documentação:** Swagger do `papel` (já não diz "Update only"), `CLAUDE.md` (contexto `GrupoCategoria`), `README.md` da raiz, este RESULT (§1, §6 e commits) e o índice.
   - Gate: `backend npm run build` OK, `npm test` 77/77, ESLint limpo nos ficheiros tocados; `frontend npm run build` OK, `npm test` 26/26.
+- **Correções da revisão do CodeRabbit no PR #97** (13 comentários: 11 corrigidos, 2 respondidos sem alteração):
+  - Swagger: o `POST /categoria` passa a usar `CategoriaCreateInput`, com `grupoId` obrigatório.
+  - `CategoriaRepo.update` bloqueia a categoria (`FOR UPDATE`) e confirma que está ativa dentro da transação, antes de mexer no papel; apagada entretanto, não grava nada.
+  - Apagar um grupo passa a ser `GrupoCategoriaRepo.deleteIfEmpty`: bloqueia o grupo (`FOR UPDATE`), conta as categorias ativas e só apaga com zero, numa transação. Atribuir uma categoria a um grupo (`resolveGrupoPk`) bloqueia a mesma linha com `FOR SHARE`, por isso as duas operações já não se cruzam. `countActiveCategorias` e `deleteById` do repo de grupos foram substituídos por este método.
+  - Índice único `UQ_grupo_categoria_domain_id` na entity e na migration (que ainda não correu em produção), para um domain id duplicado por dois "criar grupo" simultâneos falhar. O gerador de ids (ler o máximo e somar 1) é o dos outros repos e fica como está; trocá-lo é uma refatoração transversal.
+  - O editar categoria só envia o `papel` quando mudou em relação ao carregado. Enviá-lo sempre anulava a proteção do backend e podia tirar o papel a outra categoria.
+  - A lista de categorias não aceita outra largada enquanto uma reordenação ou a recarga que se segue a uma falha estão em curso (`aGravar$` + `cdkDropListDisabled`).
+  - O editar regra de despesa recorrente carrega as categorias depois da regra e mantém a categoria dela no select, mesmo num grupo de Entrada.
+  - Estatísticas: as fatias dos grupos são identificadas pela chave do grupo (cores e clique), com o nome no tooltip; dois grupos com o mesmo nome já não se confundem.
+  - `app-cor-grupo-picker`: setas e Home/End mudam a cor e uma só paragem do Tab (padrão ARIA radio group).
+  - Rotas dos grupos com `data: { allowedRoles: ['Admin'] }` explícito.
+  - §5 deste documento: o lint corre à parte dos testes.
+  - Não alterados: a FK com `NOT VALID` (a tabela `categoria` tem dezenas de linhas) e os testes do pagamento do cartão (ficam para a issue de testes).
+  - Gate: `backend npm run build` OK, `npm test` 77/77, ESLint limpo nos ficheiros tocados; `frontend npm run build` OK, `npm test` 26/26.
 - **SVG do modelo de domínio:** não há PlantUML no repo. Foi gerado com o `plantuml-mit-1.2025.4.jar` que já estava instalado localmente (plugin plantuml4idea do DataGrip), com o Graphviz do PATH. O SVG foi regenerado por inteiro (diff de uma linha enorme).
 
 ## 4. Por verificar
@@ -108,7 +122,8 @@
 
 ## 5. Como correr a verificação
 
-- `cd backend && npm run build && npm run lint && npm test` — compila; o lint tem de ficar nos 58 problemas pré-existentes; as 77 specs têm de passar (incluindo o `pagarCartao` com o mock do papel).
+- `cd backend && npm run build && npm test` — compila e corre as 77 specs (incluindo o `pagarCartao` com o mock do papel).
+- `cd backend && npm run lint` — à parte, porque já falha antes desta change: o resultado tem de ficar nos 58 problemas pré-existentes, nos mesmos 18 ficheiros. Encadeado com `&&` antes do `npm test`, impedia os testes de correr.
 - `cd frontend && npm run build && npm test -- --watch=false --browsers=ChromeHeadless` — compila os templates (tipos do `app-select`, forms, estatísticas) e corre as 26 specs.
 - `cd frontend && npm run build-storybook` — prova que a story nova do `app-select` compila; `Shared/Select › Agrupado` mostra os cabeçalhos e o teclado salta-os.
 - `grep -n "orderBy('cat.id'" backend/src/repos/Transacao/TransacaoPagarCartaoRepo.ts` — zero resultados: o pagamento já não usa a primeira categoria da tabela.
