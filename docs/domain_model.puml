@@ -40,12 +40,17 @@ package "Transacao " <<aggregate>> {
     class Descricao <<Value Object>> {
     }
 
+    class OrigemSugestao <<Value Object>> {
+    }
+
     ' Value Objects da Transação
     Transacao "1" --> "1" Data: ocorrida em
     Transacao "1" --> "0..1" Reembolso: pode originar
     Transacao "1" --> "1" Tipo: é do tipo
     Transacao "1" --> "1" Status: encontra-se em
     Transacao "1" --> "1" Descricao: detalhada por
+    ' Camada que sugeriu a categoria (historico | modelo | llm); vem sempre com a categoria sugerida
+    Transacao "1" --> "0..1" OrigemSugestao: sugerida por
 }
 
 package "Agendamento " <<aggregate>> {
@@ -113,6 +118,7 @@ CartaoCredito "1" ---> "1" Nome: apelidado de
 Transacao "0..*" --> "1" Conta: debita/credita em
 Transacao "0..*" --> "0..1" CartaoCredito: ou afeta limite de
 Transacao "1" --> "1" Categoria: classificada em
+Transacao "0..*" --> "0..1" Categoria: sugerida como (categoriaSugerida)
 Transacao "1" ---> "1" Dinheiro: movimenta
 
 ' 4. O AGENDAMENTO aponta para a CONTA (regra futura) - NOVO
