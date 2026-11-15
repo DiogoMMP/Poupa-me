@@ -148,7 +148,7 @@ describe('TransacaoService — isPagamentoCartao guard on Reembolso impact', () 
     cartaoCreditoRepo,
     {} as unknown as ITransacaoDespesasRecorrentesService,
     {} as unknown as IUserRepo,
-    { error: jest.fn() },
+    { error: jest.fn(), info: jest.fn() },
     { executar: (trabalho: () => Promise<unknown>) => trabalho() } as never
   );
 
@@ -203,7 +203,8 @@ describe('TransacaoService — updateTransacao aplica novas associações (issue
     update: jest.fn(),
     delete: jest.fn(),
     findById: jest.fn(),
-    findAll: jest.fn()
+    findAll: jest.fn(),
+    findHistoricoDescricoes: jest.fn()
   };
   const contaRepo: jest.Mocked<IContaRepo> = {
     findById: jest.fn(),
@@ -230,7 +231,7 @@ describe('TransacaoService — updateTransacao aplica novas associações (issue
     cartaoCreditoRepo,
     {} as unknown as ITransacaoDespesasRecorrentesService,
     {} as unknown as IUserRepo,
-    { error: jest.fn() },
+    { error: jest.fn(), info: jest.fn() },
     { executar: (trabalho: () => Promise<unknown>) => trabalho() } as never
   );
 

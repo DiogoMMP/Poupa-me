@@ -85,6 +85,13 @@ const route = Router();
  *           $ref: '#/components/schemas/IDinheiroProps'
  *         categoriaId:
  *           type: string
+ *         categoriaSugeridaId:
+ *           type: string
+ *           description: Categoria que a sugestão automática propôs (opcional, para métricas e treino; enviada junto com origemSugestao, senão é ignorada)
+ *         origemSugestao:
+ *           type: string
+ *           enum: [historico, modelo, llm]
+ *           description: Camada que fez a sugestão (opcional, vai junto com categoriaSugeridaId)
  *         contaId:
  *           type: string
  *           description: Domain id of the account where the transaction will be registered
@@ -112,6 +119,13 @@ const route = Router();
  *           $ref: '#/components/schemas/IDinheiroProps'
  *         categoriaId:
  *           type: string
+ *         categoriaSugeridaId:
+ *           type: string
+ *           description: Categoria que a sugestão automática propôs (opcional, para métricas e treino; enviada junto com origemSugestao, senão é ignorada)
+ *         origemSugestao:
+ *           type: string
+ *           enum: [historico, modelo, llm]
+ *           description: Camada que fez a sugestão (opcional, vai junto com categoriaSugeridaId)
  *         cartaoCreditoId:
  *           type: string
  *           description: Domain id of the credit card where the reembolso will be registered
@@ -138,6 +152,13 @@ const route = Router();
  *           $ref: '#/components/schemas/IDinheiroProps'
  *         categoriaId:
  *           type: string
+ *         categoriaSugeridaId:
+ *           type: string
+ *           description: Categoria que a sugestão automática propôs (opcional, para métricas e treino; enviada junto com origemSugestao, senão é ignorada)
+ *         origemSugestao:
+ *           type: string
+ *           enum: [historico, modelo, llm]
+ *           description: Camada que fez a sugestão (opcional, vai junto com categoriaSugeridaId)
  *         cartaoCreditoId:
  *           type: string
  *           description: Domain id of the credit card where the transaction will be registered

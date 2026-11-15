@@ -18,7 +18,7 @@ describe('TransacaoService.createEntrada — alvos apagados', () => {
     const categoriaRepo = { findActiveById: jest.fn().mockResolvedValue({}), findById: jest.fn() };
     const contaRepo = { findActiveById: jest.fn().mockResolvedValue(null), findById: jest.fn() };
     const service = new TransacaoService(
-      {} as never, categoriaRepo as never, contaRepo as never, {} as never, {} as never, {} as never, { error: jest.fn() },
+      {} as never, categoriaRepo as never, contaRepo as never, {} as never, {} as never, {} as never, { error: jest.fn(), info: jest.fn() },
       { executar: (trabalho: () => Promise<unknown>) => trabalho() } as never
     );
 
@@ -34,7 +34,7 @@ describe('TransacaoService.createEntrada — alvos apagados', () => {
     const categoriaRepo = { findActiveById: jest.fn().mockResolvedValue(null), findById: jest.fn() };
     const contaRepo = { findActiveById: jest.fn(), findById: jest.fn() };
     const service = new TransacaoService(
-      {} as never, categoriaRepo as never, contaRepo as never, {} as never, {} as never, {} as never, { error: jest.fn() },
+      {} as never, categoriaRepo as never, contaRepo as never, {} as never, {} as never, {} as never, { error: jest.fn(), info: jest.fn() },
       { executar: (trabalho: () => Promise<unknown>) => trabalho() } as never
     );
 

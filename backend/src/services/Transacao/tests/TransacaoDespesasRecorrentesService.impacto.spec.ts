@@ -102,7 +102,7 @@ describe('TransacaoService — impacto de despesas recorrentes por estado', () =
       }
     };
     service = new TransacaoService(
-      transacaoRepo as never, {} as never, contaRepo as never, {} as never, recorrentes, {} as never, { error: jest.fn() },
+      transacaoRepo as never, {} as never, contaRepo as never, {} as never, recorrentes, {} as never, { error: jest.fn(), info: jest.fn() },
       unidadeDeTrabalho as never
     );
   });

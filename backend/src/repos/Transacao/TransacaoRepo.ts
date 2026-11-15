@@ -1,6 +1,7 @@
 ﻿import { Service, Inject } from 'typedi';
 import type { DataSource, Repository } from 'typeorm';
 import type ITransacaoRepo from './IRepos/ITransacaoRepo.js';
+import type { IHistoricoDescricao } from './IRepos/ITransacaoRepo.js';
 import { TransacaoMap } from '../../mappers/TransacaoMap.js';
 import { TransacaoEntity } from '../../persistence/entities/TransacaoEntity.js';
 import { Transacao } from '../../domain/Transacao/Entities/Transacao.js';
@@ -82,7 +83,8 @@ export default class TransacaoRepo implements ITransacaoRepo {
                 status: raw['status'],
                 categoria: categoriaRow,
                 categoriaId: categoriaRow.id,
-                isPagamentoCartao: Boolean(raw['is_pagamento_cartao'] ?? false)
+                isPagamentoCartao: Boolean(raw['is_pagamento_cartao'] ?? false),
+                ...(await this.resolverSugestao(raw))
             } as Record<string, unknown>;
 
             // if the domain object already contains conta or cartaoCredito, prefer that and resolve to persistence entity
@@ -197,6 +199,26 @@ export default class TransacaoRepo implements ITransacaoRepo {
     }
 
     /**
+     * Resolves the sugestão columns of a mapped raw record: categoria_sugerida_id (domain id → numeric FK) and
+     * origem_sugestao. Returns no fields when the domain object carries no sugestão, so callers never write NULL over
+     * a stored one. A sugerida categoria that no longer exists is dropped: metric data never blocks a save.
+     */
+    private async resolverSugestao(raw: Record<string, unknown>): Promise<Record<string, unknown>> {
+        const categoriaSugeridaDomainId = raw['categoria_sugerida_id'];
+        const origemSugestao = raw['origem_sugestao'];
+        if (!categoriaSugeridaDomainId || !origemSugestao) return {};
+
+        const categoriaSugeridaRow = await repositorio(this.dataSource, CategoriaEntity)
+            .findOne({ where: { domainId: String(categoriaSugeridaDomainId) } });
+        if (!categoriaSugeridaRow) {
+            this.logger.error('TransacaoRepo: categoria sugerida %s not found; sugestão not stored', categoriaSugeridaDomainId);
+            return {};
+        }
+
+        return { categoriaSugeridaId: categoriaSugeridaRow.id, origemSugestao: String(origemSugestao) };
+    }
+
+    /**
      * Updates an existing Transacao in the database. Handles mapping from domain to persistence format,
      * resolves foreign key for Categoria, and returns the updated Transacao mapped back to domain.
      * @param transacao - The Transacao domain entity with updated fields. Must have a valid domainId to identify the record to update.
@@ -270,6 +292,8 @@ export default class TransacaoRepo implements ITransacaoRepo {
                 if (contaDestinoRowForUpdate !== null) updateSet['contaDestinoId'] = contaDestinoRowForUpdate.id;
                 if (contaPoupancaRowForUpdate !== null) updateSet['contaPoupancaId'] = contaPoupancaRowForUpdate.id;
                 if (cartaoRowForUpdate !== null) updateSet['cartaoCreditoId'] = cartaoRowForUpdate.id;
+                // Same for the sugestão: a domain object read without it must not clear the stored columns
+                Object.assign(updateSet, await this.resolverSugestao(raw));
 
                 await this.repo.createQueryBuilder()
                     .update(TransacaoEntity)
@@ -313,7 +337,8 @@ export default class TransacaoRepo implements ITransacaoRepo {
                 categoria: categoriaRow,
                 categoriaId: categoriaRow.id,
                 userDomainId: userDomainId,
-                isPagamentoCartao: Boolean(raw['is_pagamento_cartao'] ?? false)
+                isPagamentoCartao: Boolean(raw['is_pagamento_cartao'] ?? false),
+                ...(await this.resolverSugestao(raw))
             } as Record<string, unknown>;
             const contaDomainId2 = raw['contaId'] ?? raw['conta_id'] ?? raw['conta'] ?? undefined;
             if (contaDomainId2) {
@@ -401,6 +426,38 @@ export default class TransacaoRepo implements ITransacaoRepo {
             return res;
         } catch (err) {
             this.logger.error('TransacaoRepo.findAll error: %o', err);
+            throw err;
+        }
+    }
+
+    /**
+     * Aggregated history of a user's transações for the categoria suggestion (F0009): one row per (descricao,
+     * categoria) with its count and most recent created_at. "Pagamento X" records are left out, since their
+     * categoria is assigned by the system. The descricao is returned raw; callers normalize it.
+     * @param userDomainId - The domain ID of the user whose history is read.
+     */
+    public async findHistoricoDescricoes(userDomainId: string): Promise<IHistoricoDescricao[]> {
+        try {
+            const rows = await this.repo.createQueryBuilder('t')
+                .innerJoin('t.categoria', 'c')
+                .select('t.descricao', 'descricao')
+                .addSelect('c.domainId', 'categoriaDomainId')
+                .addSelect('COUNT(*)', 'total')
+                .addSelect('MAX(t.createdAt)', 'ultima')
+                .where('t.userDomainId = :userDomainId', { userDomainId })
+                .andWhere('t.isPagamentoCartao = false')
+                .groupBy('t.descricao')
+                .addGroupBy('c.domainId')
+                .getRawMany<{ descricao: string; categoriaDomainId: string; total: string | number; ultima: string | Date }>();
+
+            return rows.map(r => ({
+                descricao: String(r.descricao),
+                categoriaDomainId: String(r.categoriaDomainId),
+                total: Number(r.total),
+                ultima: new Date(r.ultima)
+            }));
+        } catch (err) {
+            this.logger.error('TransacaoRepo.findHistoricoDescricoes error: %o', err);
             throw err;
         }
     }

@@ -4,6 +4,7 @@ import {Data} from "../../Shared/ValueObjects/Data.js";
 import {Dinheiro} from "../../Shared/ValueObjects/Dinheiro.js";
 import {Tipo} from "../../Shared/ValueObjects/Tipo.js";
 import {Status} from "../ValueObjects/Status.js";
+import type {OrigemSugestao} from "../ValueObjects/OrigemSugestao.js";
 import {Categoria} from "../../Categoria/Entities/Categoria.js";
 import {UniqueEntityID} from "../../../core/domain/UniqueEntityID.js";
 import {Guard} from "../../../core/logic/Guard.js";
@@ -25,6 +26,10 @@ interface TransacaoProps {
     // True for the auto-generated "Pagamento X" record created when a credit card is paid off. Its valor already
     // reflects money movements applied directly by the payment flow, so it must never carry its own balance impact.
     isPagamentoCartao?: boolean;
+    // The categoria proposed by the automatic suggestion when the transaction was created, and the layer that
+    // proposed it (F0009). Always both or neither; kept even when the user picked a different categoria.
+    categoriaSugerida?: Categoria;
+    origemSugestao?: OrigemSugestao;
 }
 
 export class Transacao extends AggregateRoot<TransacaoProps> {
@@ -72,6 +77,14 @@ export class Transacao extends AggregateRoot<TransacaoProps> {
         return this.props.isPagamentoCartao ?? false;
     }
 
+    get categoriaSugerida(): Categoria | undefined {
+        return this.props.categoriaSugerida;
+    }
+
+    get origemSugestao(): OrigemSugestao | undefined {
+        return this.props.origemSugestao;
+    }
+
     private constructor(props: TransacaoProps, id?: UniqueEntityID) {
         super(props, id);
     }
@@ -103,6 +116,13 @@ export class Transacao extends AggregateRoot<TransacaoProps> {
 
         if (hasConta && hasCartao && !isReembolso) {
             return Result.fail<Transacao>('Transacao cannot have both conta and cartaoCredito (except for Reembolso)');
+        }
+
+        // The suggestion is only meaningful as a pair: the categoria proposed and the layer that proposed it
+        const hasCategoriaSugerida = props.categoriaSugerida !== undefined && props.categoriaSugerida !== null;
+        const hasOrigemSugestao = props.origemSugestao !== undefined && props.origemSugestao !== null;
+        if (hasCategoriaSugerida !== hasOrigemSugestao) {
+            return Result.fail<Transacao>('categoriaSugerida and origemSugestao must be provided together');
         }
 
         const transacao = new Transacao(props, id);

@@ -21,6 +21,8 @@ import { Dinheiro } from '../../domain/Shared/ValueObjects/Dinheiro.js';
 import { Tipo } from '../../domain/Shared/ValueObjects/Tipo.js';
 import { TransacaoMap } from '../../mappers/TransacaoMap.js';
 import { Status } from '../../domain/Transacao/ValueObjects/Status.js';
+import { OrigemSugestao } from '../../domain/Transacao/ValueObjects/OrigemSugestao.js';
+import type { Categoria } from '../../domain/Categoria/Entities/Categoria.js';
 
 /**
  * Core service for Transacao: handles creation (Entrada, Saída, Crédito, Reembolso),
@@ -35,9 +37,39 @@ export default class TransacaoService implements ITransacaoService {
         @Inject('CartaoCreditoRepo') private cartaoCreditoRepo: ICartaoCreditoRepo,
         @Inject('TransacaoDespesasRecorrentesService') private transacaoDespesasRecorrentesService: ITransacaoDespesasRecorrentesService,
         @Inject('UserRepo') private userRepo: IUserRepo,
-        @Inject('logger') private logger: { error: (...args: unknown[]) => void },
+        @Inject('logger') private logger: { error: (...args: unknown[]) => void, info: (...args: unknown[]) => void },
         @Inject('UnidadeDeTrabalho') private unidadeDeTrabalho: IUnidadeDeTrabalho
     ) {}
+
+    /**
+     * Resolves the sugestão de categoria sent with a new movimento (categoriaSugeridaId + origemSugestao). It is only
+     * metric data: when one of the two is missing, the origem is invalid or the categoria does not exist, the
+     * sugestão is ignored and the movimento is created without it.
+     */
+    private async resolverSugestao(
+        inputDTO: Pick<ITransacaoInputDTO, 'categoriaSugeridaId' | 'origemSugestao'>
+    ): Promise<{ categoriaSugerida?: Categoria; origemSugestao?: OrigemSugestao }> {
+        const { categoriaSugeridaId, origemSugestao } = inputDTO;
+        if (!categoriaSugeridaId && !origemSugestao) return {};
+        if (!categoriaSugeridaId || !origemSugestao) {
+            this.logger.info('TransacaoService: sugestão ignorada (categoriaSugeridaId e origemSugestao vêm juntos)');
+            return {};
+        }
+
+        const origemResult = OrigemSugestao.create(origemSugestao);
+        if (origemResult.isFailure) {
+            this.logger.info('TransacaoService: sugestão ignorada (origem inválida: %s)', origemSugestao);
+            return {};
+        }
+
+        const categoriaSugerida = await this.categoriaRepo.findActiveById(categoriaSugeridaId);
+        if (!categoriaSugerida) {
+            this.logger.info('TransacaoService: sugestão ignorada (categoria sugerida não encontrada: %s)', categoriaSugeridaId);
+            return {};
+        }
+
+        return { categoriaSugerida, origemSugestao: origemResult.getValue() };
+    }
 
     private async getUserNome(userId?: string): Promise<string | undefined> {
         if (!userId) return undefined;
@@ -83,7 +115,8 @@ export default class TransacaoService implements ITransacaoService {
                 data: dataResult.getValue(),
                 valor: dinheiroResult.getValue(),
                 categoria: categoria,
-                conta: conta
+                conta: conta,
+                ...(await this.resolverSugestao(inputDTO))
             });
 
             if (transacaoOrError.isFailure) return Result.fail<ITransacaoDTO>(String(transacaoOrError.error));
@@ -130,7 +163,8 @@ export default class TransacaoService implements ITransacaoService {
                 data: dataResult.getValue(),
                 valor: dinheiroResult.getValue(),
                 categoria: categoria,
-                conta: conta
+                conta: conta,
+                ...(await this.resolverSugestao(inputDTO))
             });
 
             if (transacaoOrError.isFailure) return Result.fail<ITransacaoDTO>(String(transacaoOrError.error));
@@ -187,7 +221,8 @@ export default class TransacaoService implements ITransacaoService {
                 data: dataResult.getValue(),
                 valor: dinheiroResult.getValue(),
                 categoria: categoria,
-                cartaoCredito: cartaoCredito
+                cartaoCredito: cartaoCredito,
+                ...(await this.resolverSugestao(inputDTO))
             });
 
             if (transacaoOrError.isFailure) return Result.fail<ITransacaoDTO>(String(transacaoOrError.error));
@@ -250,7 +285,8 @@ export default class TransacaoService implements ITransacaoService {
                 valor: dinheiroResult.getValue(),
                 categoria: categoria,
                 cartaoCredito: cartaoCredito,
-                conta: conta
+                conta: conta,
+                ...(await this.resolverSugestao(inputDTO))
             });
 
             if (transacaoOrError.isFailure) return Result.fail<ITransacaoDTO>(String(transacaoOrError.error));

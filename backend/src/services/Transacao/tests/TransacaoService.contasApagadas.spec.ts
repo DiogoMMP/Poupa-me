@@ -93,7 +93,7 @@ describe('TransacaoService.updateTransacao — cartão novo com conta de pagamen
       update: jest.fn()
     };
     const service = new TransacaoService(
-      transacaoRepo as never, {} as never, contaRepo as never, cartaoRepo as never, {} as never, {} as never, { error: jest.fn() },
+      transacaoRepo as never, {} as never, contaRepo as never, cartaoRepo as never, {} as never, {} as never, { error: jest.fn(), info: jest.fn() },
       { executar: (trabalho: () => Promise<unknown>) => trabalho() } as never
     );
 

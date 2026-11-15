@@ -31,6 +31,10 @@ export interface ITransacaoInputDTO {
     contaPoupancaId?: string; // Only for Poupança - the savings account
     imediata?: boolean;
     userId?: string;
+    /** Categoria proposed by GET /ia-categorizacao/sugerir (kept even if the user picked another one). Sent with origemSugestao. */
+    categoriaSugeridaId?: string;
+    /** Layer that proposed it: 'historico' | 'modelo' | 'llm'. */
+    origemSugestao?: string;
 }
 
 export interface ITransacaoReembolsoDTO {
@@ -41,6 +45,10 @@ export interface ITransacaoReembolsoDTO {
     contaId?: string;
     cartaoCreditoId?: string;
     userId?: string;
+    /** Categoria proposed by GET /ia-categorizacao/sugerir (kept even if the user picked another one). Sent with origemSugestao. */
+    categoriaSugeridaId?: string;
+    /** Layer that proposed it: 'historico' | 'modelo' | 'llm'. */
+    origemSugestao?: string;
 }
 
 export interface ITransacaoUpdateDTO {

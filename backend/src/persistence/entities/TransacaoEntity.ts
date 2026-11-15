@@ -50,6 +50,17 @@ export class TransacaoEntity {
     @Column({ name: 'categoria_id', type: 'int' })
     categoriaId!: number;
 
+    // Categoria proposta pela sugestão automática e a camada que a propôs (F0009); NULL quando não houve sugestão.
+    @ManyToOne(() => CategoriaEntity, { eager: false, nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'categoria_sugerida_id', foreignKeyConstraintName: 'FK_transacao_categoria_sugerida' })
+    categoriaSugerida?: CategoriaEntity;
+
+    @Column({ name: 'categoria_sugerida_id', type: 'int', nullable: true })
+    categoriaSugeridaId?: number;
+
+    @Column({ name: 'origem_sugestao', type: 'varchar', length: 20, nullable: true })
+    origemSugestao?: string;
+
     @ManyToOne(() => ContaEntity, { eager: false })
     @JoinColumn({ name: 'conta_id' })
     conta?: ContaEntity;

@@ -6,6 +6,7 @@ import { Data } from '../domain/Shared/ValueObjects/Data.js';
 import { Dinheiro } from '../domain/Shared/ValueObjects/Dinheiro.js';
 import { Tipo } from '../domain/Shared/ValueObjects/Tipo.js';
 import { Status } from '../domain/Transacao/ValueObjects/Status.js';
+import { OrigemSugestao } from '../domain/Transacao/ValueObjects/OrigemSugestao.js';
 import { CategoriaMap } from './CategoriaMap.js';
 import { ContaMap } from './ContaMap.js';
 import { CartaoCreditoMap } from './CartaoCreditoMap.js';
@@ -127,6 +128,21 @@ export class TransacaoMap extends Mapper<Transacao> {
             cartaoCreditoDomain = null;
         }
 
+        // Sugestão de categoria (optional): only filled when the row brings the joined categoriaSugerida object.
+        // Reads that don't load that relation leave both undefined, and TransacaoRepo.update then leaves the
+        // columns untouched instead of clearing them.
+        let categoriaSugeridaDomain = null;
+        let origemSugestaoDomain = null;
+        if (r['categoriaSugerida']) {
+            const origemResult = OrigemSugestao.create(String(r['origemSugestao'] ?? r['origem_sugestao'] ?? ''));
+            categoriaSugeridaDomain = await CategoriaMap.toDomain(r['categoriaSugerida']);
+            if (categoriaSugeridaDomain && origemResult.isSuccess) {
+                origemSugestaoDomain = origemResult.getValue();
+            } else {
+                categoriaSugeridaDomain = null;
+            }
+        }
+
         const combinedResults = Result.combine([
             descricaoResult,
             dataResult,
@@ -175,6 +191,9 @@ export class TransacaoMap extends Mapper<Transacao> {
                 ...(contaDestinoDomain ? { contaDestino: contaDestinoDomain } : {}),
                 ...(contaPoupancaDomain ? { contaPoupanca: contaPoupancaDomain } : {}),
                 ...(cartaoCreditoDomain ? { cartaoCredito: cartaoCreditoDomain } : {}),
+                ...(categoriaSugeridaDomain && origemSugestaoDomain
+                    ? { categoriaSugerida: categoriaSugeridaDomain, origemSugestao: origemSugestaoDomain }
+                    : {}),
                 isPagamentoCartao: Boolean(r['isPagamentoCartao'] ?? r['is_pagamento_cartao'] ?? false)
             },
             new UniqueEntityID(String(r['domainId'] ?? r['id']))
@@ -241,7 +260,10 @@ export class TransacaoMap extends Mapper<Transacao> {
             conta_poupanca_id: transacao.contaPoupanca ? transacao.contaPoupanca.id.toString() : undefined,
             status: transacao.status.value,
             user_domain_id: userDomainId ?? undefined,
-            is_pagamento_cartao: transacao.isPagamentoCartao
+            is_pagamento_cartao: transacao.isPagamentoCartao,
+            // Domain id, like categoria_id; the repository resolves it to the numeric FK
+            categoria_sugerida_id: transacao.categoriaSugerida ? transacao.categoriaSugerida.id.toString() : undefined,
+            origem_sugestao: transacao.origemSugestao ? transacao.origemSugestao.value : undefined
         };
     }
 
