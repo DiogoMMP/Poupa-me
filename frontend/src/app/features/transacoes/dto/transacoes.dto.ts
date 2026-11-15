@@ -52,6 +52,8 @@ export interface TransacoesInputDTO {
   cartaoCreditoId?: string;
   contaDestinoId?: string; // Only for monthly expense - destination account id
   userId?: string; // normally set by the server from authenticated user
+  categoriaSugeridaId?: string; // categoria proposta pela sugestão automática (enviada com origemSugestao)
+  origemSugestao?: string; // 'historico' | 'modelo' | 'llm'
 }
 
 export interface TransacoesReembolsoDTO {
@@ -62,6 +64,8 @@ export interface TransacoesReembolsoDTO {
   contaId?: string;
   cartaoCreditoId?: string;
   userId?: string;
+  categoriaSugeridaId?: string; // categoria proposta pela sugestão automática (enviada com origemSugestao)
+  origemSugestao?: string; // 'historico' | 'modelo' | 'llm'
 }
 
 export interface TransacoesUpdateDTO {

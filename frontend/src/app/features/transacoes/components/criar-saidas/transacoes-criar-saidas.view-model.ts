@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TransacoesService } from '../../services/transacoes.service';
 import { TransacoesInputDTO } from '../../dto/transacoes.dto';
+import { SugestaoGuardada } from '../../../ia-categorizacao/dto/ia-categorizacao.dto';
 import { NotificationService } from '../../../../services/notification.service';
 import { SelectedBancoService } from '../../../../services/selected-banco.service';
 import { ContasService } from '../../../contas/services/contas.service';
@@ -45,8 +46,9 @@ export class TransacoesCriarSaidasViewModel {
   /**
    * Submits a new Saída transaction.
    * Expects formData with: { data: string (ISO date), descricao, valor: { valor, moeda }, categoriaId, contaId }
+   * `sugestao` is the last categoria suggestion of the form, stored with the transaction (even if the user changed the categoria).
    */
-  submit(formData: any): void {
+  submit(formData: any, sugestao?: SugestaoGuardada | null): void {
     this.isLoading$.next(true);
 
     const rawDate: string = formData.data ?? '';
@@ -74,6 +76,7 @@ export class TransacoesCriarSaidasViewModel {
       valor: { valor: +formData.valor.valor, moeda: formData.valor.moeda },
       categoriaId: formData.categoriaId,
       contaId: formData.contaId || undefined,
+      ...(sugestao ? { categoriaSugeridaId: sugestao.categoriaSugeridaId, origemSugestao: sugestao.origemSugestao } : {}),
     };
 
     this.service.createSaida(payload).subscribe({

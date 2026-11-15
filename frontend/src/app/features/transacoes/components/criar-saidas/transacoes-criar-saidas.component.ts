@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { RouterModule } from '@angular/router';
 import { TransacoesCriarSaidasViewModel } from './transacoes-criar-saidas.view-model';
 import { IaCategorizacaoService } from '../../../ia-categorizacao/ia-categorizacao.service';
+import { SugestaoGuardada } from '../../../ia-categorizacao/dto/ia-categorizacao.dto';
 
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { SelectComponent } from '../../../../shared/components/select/select.component';
@@ -25,6 +26,8 @@ export class TransacoesCriarSaidasComponent {
   private iaCategorizacaoService = inject(IaCategorizacaoService);
 
   form: FormGroup;
+  /** Última sugestão de categoria, enviada no submit para registar a categoria sugerida e a sua origem. */
+  private sugestao: SugestaoGuardada | null = null;
   readonly todayIso = getTodayIso();
 
   constructor() {
@@ -43,17 +46,23 @@ export class TransacoesCriarSaidasComponent {
   onDescricaoBlur() {
     const descricao = this.form.get('descricao')?.value;
     if (descricao) {
-      this.iaCategorizacaoService.sugerir(descricao).subscribe(categoria => {
-        if (categoria) {
-          this.form.get('categoriaId')?.setValue(categoria.id);
-        }
+      this.iaCategorizacaoService.sugerir(descricao, 'Saída').subscribe({
+        next: sugestao => {
+          if (sugestao?.categoria?.id) {
+            this.form.get('categoriaId')?.setValue(sugestao.categoria.id);
+            this.sugestao = { categoriaSugeridaId: sugestao.categoria.id, origemSugestao: sugestao.origem };
+          } else {
+            this.sugestao = null;
+          }
+        },
+        error: () => { this.sugestao = null; }
       });
     }
   }
 
   onSubmit() {
     if (this.form.valid) {
-      this.vm.submit(this.form.value);
+      this.vm.submit(this.form.value, this.sugestao);
     }
   }
 }
