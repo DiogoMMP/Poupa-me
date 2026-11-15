@@ -80,33 +80,42 @@ export default class CategoriaRepo implements ICategoriaRepo {
      * Updates an existing Categoria entity in the database, located by its domain ID: nome, icon, grupo, ordem and
      * papel. When a papel is set, it is first removed from the categoria that had it, in the same DB transaction
      * (a papel belongs to at most one active categoria).
+     * Only the fields that changed are written: grupo/ordem when `mudaGrupo`, papel when `mudaPapel`. Otherwise a
+     * rename would put back an ordem or a papel read before a concurrent reorder or papel change.
      * @param categoria - The Categoria domain entity with updated values.
      * @param id - The domain ID of the Categoria to update.
+     * @param alteracoes - which of grupo/ordem and papel changed (both by default)
      */
-    public async update(categoria: Categoria, id: string): Promise<Categoria> {
+    public async update(
+        categoria: Categoria,
+        id: string,
+        alteracoes: { mudaGrupo: boolean; mudaPapel: boolean } = { mudaGrupo: true, mudaPapel: true }
+    ): Promise<Categoria> {
         try {
             const raw = CategoriaMap.toPersistence(categoria);
             const papel = (raw.papel as string | null) ?? null;
 
             await this.dataSource.transaction(async (manager) => {
-                const grupoPk = await this.resolveGrupoPk(manager, categoria.grupoId?.toString() ?? null);
+                const campos: Partial<CategoriaEntity> = { nome: raw.nome as string, icon: raw.icon as string };
 
-                if (papel) {
-                    await manager.getRepository(CategoriaEntity).update(
-                        { papel, domainId: Not(id) },
-                        { papel: null }
-                    );
+                if (alteracoes.mudaGrupo) {
+                    campos.grupoId = await this.resolveGrupoPk(manager, categoria.grupoId?.toString() ?? null);
+                    campos.ordem = raw.ordem as number;
+                }
+
+                if (alteracoes.mudaPapel) {
+                    if (papel) {
+                        await manager.getRepository(CategoriaEntity).update(
+                            { papel, domainId: Not(id) },
+                            { papel: null }
+                        );
+                    }
+                    campos.papel = papel;
                 }
 
                 await manager.createQueryBuilder()
                     .update(CategoriaEntity)
-                    .set({
-                        nome: raw.nome as string,
-                        icon: raw.icon as string,
-                        grupoId: grupoPk,
-                        ordem: raw.ordem as number,
-                        papel
-                    })
+                    .set(campos)
                     .where('domain_id = :domainId', { domainId: id })
                     .execute();
             });
@@ -249,7 +258,8 @@ export default class CategoriaRepo implements ICategoriaRepo {
      */
     private async resolveGrupoPk(manager: EntityManager, grupoDomainId: string | null): Promise<number | null> {
         if (!grupoDomainId) return null;
-        const grupo = await manager.getRepository(GrupoCategoriaEntity).findOne({ where: { domainId: grupoDomainId } });
+        // Only an active group: a categoria must never be saved into a group that was just deleted
+        const grupo = await manager.getRepository(GrupoCategoriaEntity).findOne({ where: { domainId: grupoDomainId, isActive: true } });
         if (!grupo) throw new Error(`GrupoCategoria not found with id=${grupoDomainId}`);
         return grupo.id;
     }

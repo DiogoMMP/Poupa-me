@@ -51,6 +51,11 @@ export class PapelCategoria extends ValueObject<PapelCategoriaProps> {
             return Result.fail<PapelCategoria>(guardResult.message);
         }
 
+        // The value comes from a JSON body: a number or an object must fail as unsupported, not throw on trim()
+        if (typeof value !== 'string') {
+            return Result.fail<PapelCategoria>(`Papel da categoria '${String(value)}' is not supported by the domain.`);
+        }
+
         const normalized = value.trim();
 
         if (!PapelCategoria.isSupported(normalized)) {

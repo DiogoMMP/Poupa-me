@@ -3,6 +3,7 @@ import { Service, Inject } from 'typedi';
 import type ICategoriaController from './ICategoriaController.js';
 import type ICategoriaService from '../../services/Categoria/ICategoriaService.js';
 import type { IInputCategoriaDTO, IReordenarCategoriasDTO } from '../../dto/ICategoriaDTO.js';
+import { failureStatus } from '../../core/infra/FailureStatus.js';
 
 /**
  * Controller implementation for Categoria operations.
@@ -96,9 +97,7 @@ export default class CategoriaController implements ICategoriaController {
         try {
             const body = (req.body ?? {}) as Partial<IReordenarCategoriasDTO>;
             const result = await this.categoriaService.reordenarCategorias(body.grupoId ?? null, body.ids as string[]);
-            if (result.isFailure) {
-                return res.status(String(result.error).includes('not found') ? 404 : 400).json({ error: result.error });
-            }
+            if (result.isFailure) return res.status(failureStatus(result.error)).json({ error: result.error });
             return res.status(200).json({ success: result.getValue() });
         } catch (e) {
             next(e);

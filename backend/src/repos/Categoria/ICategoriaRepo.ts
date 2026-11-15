@@ -4,7 +4,7 @@ import type {PapelCategoriaType} from "../../domain/Categoria/ValueObjects/Papel
 export default interface ICategoriaRepo {
     save(categoria: Categoria): Promise<Categoria>;
     /** Updates nome, icon, grupo, ordem and papel. Setting a papel takes it from the categoria that had it, in the same DB transaction. */
-    update(categoria: Categoria, id: string): Promise<Categoria>;
+    update(categoria: Categoria, id: string, alteracoes?: { mudaGrupo: boolean; mudaPapel: boolean }): Promise<Categoria>;
     /** Soft delete (is_active = false); also clears the papel. */
     deleteById(id: string): Promise<void>;
     /** Ordered by group ordem ("Sem grupo" last), then ordem and id. */

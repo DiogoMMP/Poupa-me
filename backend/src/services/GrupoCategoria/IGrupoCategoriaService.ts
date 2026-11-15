@@ -1,5 +1,5 @@
-import type {Result} from "../../../core/logic/Result.js";
-import type {IGrupoCategoriaDTO, IInputGrupoCategoriaDTO} from "../../../dto/IGrupoCategoriaDTO.js";
+import type {Result} from "../../core/logic/Result.js";
+import type {IGrupoCategoriaDTO, IInputGrupoCategoriaDTO} from "../../dto/IGrupoCategoriaDTO.js";
 
 /**
  * Service interface for operations on `GrupoCategoria` (group of categorias):

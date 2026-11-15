@@ -51,7 +51,7 @@ const route = Router();
  *           type: string
  *           nullable: true
  *           enum: [PagamentoCartao]
- *           description: Update only. Setting it takes it from the categoria that had it; null clears it.
+ *           description: Optional on create and update. Setting it takes it from the categoria that had it; on update, null clears it and leaving it out keeps it.
  *     CategoriasAgrupadas:
  *       type: object
  *       properties:

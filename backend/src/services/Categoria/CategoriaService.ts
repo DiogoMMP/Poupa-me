@@ -13,10 +13,21 @@ import { Result as CoreResult } from '../../core/logic/Result.js';
 import { UniqueEntityID } from '../../core/domain/UniqueEntityID.js';
 import { CategoriaMap } from '../../mappers/CategoriaMap.js';
 import { GrupoCategoriaMap } from '../../mappers/GrupoCategoriaMap.js';
-import { isConjuntoExato } from '../GrupoCategoria/GrupoCategoriaService.js';
+import { isConjuntoExato } from '../../core/logic/ConjuntoExato.js';
+
+/** Índices únicos de categoria que o Admin pode violar ao preencher o formulário. */
+const MENSAGENS_UNICIDADE: Record<string, string> = {
+    UQ_categoria_nome_ativo: 'Já existe uma categoria com esse nome.',
+    UQ_categoria_papel_ativo: 'Já existe outra categoria com esse papel.'
+};
 
 @Service()
 export default class CategoriaService implements ICategoriaService {
+    /** Validates a papel sent by the client (create and update share it). */
+    private static parsePapel(valor: unknown): CoreResult<PapelCategoria> {
+        return PapelCategoria.create(valor as string);
+    }
+
     constructor(
         @Inject('CategoriaRepo') private categoriaRepo: ICategoriaRepo,
         @Inject('GrupoCategoriaRepo') private grupoCategoriaRepo: IGrupoCategoriaRepo,
@@ -37,14 +48,16 @@ export default class CategoriaService implements ICategoriaService {
             const combine = CoreResult.combine([nameResult, iconResult]);
             if (combine.isFailure) return Result.fail<ICategoriaDTO>(combine.error || 'Invalid categoria data');
 
-            if (!inputDTO.grupoId) return Result.fail<ICategoriaDTO>('O grupo da categoria é obrigatório.');
+            if (!inputDTO.grupoId || typeof inputDTO.grupoId !== 'string') {
+                return Result.fail<ICategoriaDTO>('O grupo da categoria é obrigatório.');
+            }
             const grupo = await this.grupoCategoriaRepo.findActiveById(inputDTO.grupoId);
             if (!grupo) return Result.fail<ICategoriaDTO>(`O grupo ${inputDTO.grupoId} não existe ou foi apagado.`);
 
             // papel is optional; when given it is taken from the categoria that had it (see CategoriaRepo.save)
             let papel: PapelCategoria | undefined;
             if (inputDTO.papel) {
-                const papelResult = PapelCategoria.create(inputDTO.papel);
+                const papelResult = CategoriaService.parsePapel(inputDTO.papel);
                 if (papelResult.isFailure) return Result.fail<ICategoriaDTO>(papelResult.error as string);
                 papel = papelResult.getValue();
             }
@@ -63,7 +76,7 @@ export default class CategoriaService implements ICategoriaService {
             return Result.ok<ICategoriaDTO>(CategoriaMap.toDTO(saved) as ICategoriaDTO);
         } catch (e) {
             this.logger.error('CategoriaService.createCategoria error: %o', e);
-            return Result.fail<ICategoriaDTO>(mensagemErro(e, 'Não foi possível criar a categoria.'));
+            return Result.fail<ICategoriaDTO>(mensagemErro(e, 'Não foi possível criar a categoria.', MENSAGENS_UNICIDADE));
         }
     }
 
@@ -99,7 +112,7 @@ export default class CategoriaService implements ICategoriaService {
             return Result.ok<ICategoriasAgrupadasDTO[]>(agrupadas);
         } catch (e) {
             this.logger.error('CategoriaService.getAllCategorias error: %o', e);
-            return Result.fail<ICategoriasAgrupadasDTO[]>(e instanceof Error ? e.message : 'Error getting all categorias');
+            return Result.fail<ICategoriasAgrupadasDTO[]>(mensagemErro(e, 'Não foi possível obter as categorias.'));
         }
     }
 
@@ -114,7 +127,7 @@ export default class CategoriaService implements ICategoriaService {
             return Result.ok<ICategoriaDTO>(CategoriaMap.toDTO(categoria) as ICategoriaDTO);
         } catch (e) {
             this.logger.error('CategoriaService.getCategoriaById error: %o', e);
-            return Result.fail<ICategoriaDTO>(e instanceof Error ? e.message : 'Error getting categoria by id');
+            return Result.fail<ICategoriaDTO>(mensagemErro(e, 'Não foi possível obter a categoria.'));
         }
     }
 
@@ -128,7 +141,8 @@ export default class CategoriaService implements ICategoriaService {
             if (!updateDTO) return Result.fail<ICategoriaDTO>('No update data provided');
             if (!id) return Result.fail<ICategoriaDTO>('ID is required to locate categoria');
 
-            const existing = await this.categoriaRepo.findById(id);
+            // Only active categorias can be edited: a deleted one must not receive a group or a papel
+            const existing = await this.categoriaRepo.findActiveById(id);
             if (!existing) return Result.fail<ICategoriaDTO>(`Categoria not found with id=${id}`);
 
             const name = updateDTO.nome ? Nome.create(updateDTO.nome) : CoreResult.ok(existing.nome);
@@ -139,21 +153,26 @@ export default class CategoriaService implements ICategoriaService {
 
             let grupoId: UniqueEntityID | undefined = existing.grupoId;
             let ordem = existing.ordem;
+            let mudaGrupo = false;
             if (updateDTO.grupoId !== undefined && updateDTO.grupoId !== existing.grupoId?.toString()) {
                 if (!updateDTO.grupoId) {
                     return Result.fail<ICategoriaDTO>('Não é possível tirar uma categoria do grupo; escolha outro grupo.');
                 }
+                if (typeof updateDTO.grupoId !== 'string') return Result.fail<ICategoriaDTO>('Grupo inválido.');
                 const grupo = await this.grupoCategoriaRepo.findActiveById(updateDTO.grupoId);
                 if (!grupo) return Result.fail<ICategoriaDTO>(`O grupo ${updateDTO.grupoId} não existe ou foi apagado.`);
                 grupoId = grupo.id;
                 ordem = await this.categoriaRepo.nextOrdem(updateDTO.grupoId);
+                mudaGrupo = true;
             }
 
+            // papel: undefined keeps it (and it is not written, so a concurrent change made elsewhere is not undone)
             let papel: PapelCategoria | undefined = existing.papel;
+            const mudaPapel = updateDTO.papel !== undefined;
             if (updateDTO.papel === null) {
                 papel = undefined;
             } else if (updateDTO.papel !== undefined) {
-                const papelResult = PapelCategoria.create(updateDTO.papel);
+                const papelResult = CategoriaService.parsePapel(updateDTO.papel);
                 if (papelResult.isFailure) return Result.fail<ICategoriaDTO>(papelResult.error as string);
                 papel = papelResult.getValue();
             }
@@ -164,11 +183,11 @@ export default class CategoriaService implements ICategoriaService {
             );
             if (categoriaOrError.isFailure) return Result.fail<ICategoriaDTO>(categoriaOrError.errorValue() as unknown as string);
 
-            const updated = await this.categoriaRepo.update(categoriaOrError.getValue(), id);
+            const updated = await this.categoriaRepo.update(categoriaOrError.getValue(), id, { mudaGrupo, mudaPapel });
             return Result.ok<ICategoriaDTO>(CategoriaMap.toDTO(updated) as ICategoriaDTO);
         } catch (e) {
             this.logger.error('CategoriaService.updateCategoria error: %o', e);
-            return Result.fail<ICategoriaDTO>(mensagemErro(e, 'Não foi possível atualizar a categoria.'));
+            return Result.fail<ICategoriaDTO>(mensagemErro(e, 'Não foi possível atualizar a categoria.', MENSAGENS_UNICIDADE));
         }
     }
 
@@ -195,7 +214,7 @@ export default class CategoriaService implements ICategoriaService {
     public async reordenarCategorias(grupoId: string | null, ids: string[]): Promise<Result<boolean>> {
         try {
             if (grupoId && !(await this.grupoCategoriaRepo.findActiveById(grupoId))) {
-                return Result.fail<boolean>(`GrupoCategoria not found with id=${grupoId}`);
+                return Result.fail<boolean>(`O grupo ${grupoId} não existe ou foi apagado.`);
             }
             const ativas = await this.categoriaRepo.findAllActiveByGrupo(grupoId);
             if (!isConjuntoExato(ids, ativas.map(c => c.id.toString()))) {

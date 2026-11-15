@@ -63,6 +63,11 @@ export class CorGrupoCategoria extends ValueObject<CorGrupoCategoriaProps> {
             return Result.fail<CorGrupoCategoria>(guardResult.message);
         }
 
+        // The value comes from a JSON body: a number or an object must fail as unsupported, not throw on trim()
+        if (typeof value !== 'string') {
+            return Result.fail<CorGrupoCategoria>(`Cor do grupo '${String(value)}' is not supported by the domain.`);
+        }
+
         const normalized = value.trim();
 
         if (!CorGrupoCategoria.isSupported(normalized)) {

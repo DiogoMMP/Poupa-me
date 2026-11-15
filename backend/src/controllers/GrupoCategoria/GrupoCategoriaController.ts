@@ -1,16 +1,9 @@
 import type { Request, Response, NextFunction } from 'express';
 import { Service, Inject } from 'typedi';
 import type IGrupoCategoriaController from './IGrupoCategoriaController.js';
-import type IGrupoCategoriaService from '../../services/GrupoCategoria/IServices/IGrupoCategoriaService.js';
+import type IGrupoCategoriaService from '../../services/GrupoCategoria/IGrupoCategoriaService.js';
 import type { IInputGrupoCategoriaDTO, IReordenarDTO } from '../../dto/IGrupoCategoriaDTO.js';
-
-/**
- * Maps a failed service result to the HTTP status: 404 for "not found", 400 otherwise (validation, delete blocked
- * by active categorias, invalid reorder list).
- */
-function failureStatus(error: unknown): number {
-    return typeof error === 'string' && error.includes('not found') ? 404 : 400;
-}
+import { failureStatus } from '../../core/infra/FailureStatus.js';
 
 /**
  * Controller implementation for GrupoCategoria operations.

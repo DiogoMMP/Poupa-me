@@ -50,6 +50,11 @@ export class TipoGrupoCategoria extends ValueObject<TipoGrupoCategoriaProps> {
             return Result.fail<TipoGrupoCategoria>(guardResult.message);
         }
 
+        // The value comes from a JSON body: a number or an object must fail as unsupported, not throw on trim()
+        if (typeof value !== 'string') {
+            return Result.fail<TipoGrupoCategoria>(`Tipo do grupo '${String(value)}' is not supported by the domain.`);
+        }
+
         const normalized = value.trim();
 
         if (!TipoGrupoCategoria.isSupported(normalized)) {

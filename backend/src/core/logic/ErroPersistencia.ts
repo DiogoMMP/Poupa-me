@@ -1,20 +1,17 @@
 /**
- * Converte um erro apanhado num service numa mensagem que pode ser mostrada ao utilizador.
+ * Converte uma exceção apanhada num service numa mensagem que pode ser mostrada ao utilizador.
  *
- * Os erros da base de dados (QueryFailedError do TypeORM, com `driverError.code`) nunca chegam ao cliente tal como
- * vêm do Postgres: uma violação de um índice único conhecido dá uma mensagem própria, e qualquer outro erro de BD dá
- * a mensagem genérica `fallback`. Os restantes erros mantêm a sua mensagem, como antes.
+ * Os erros de negócio esperados chegam pelo padrão `Result`, nunca por exceções. Uma exceção é sempre um erro interno
+ * (BD indisponível, constraint violada, falha de mapeamento), e o texto dela nunca chega ao cliente: o host da BD, o
+ * nome de tabelas ou colunas e o texto do Postgres ficam só no log. A única exceção é a violação de um índice único
+ * que o próprio service declara em `mensagensUnicidade`, porque essa resulta do que o utilizador escreveu no formulário
+ * (p.ex. um nome repetido) e tem uma mensagem própria.
+ *
+ * O mapa de índices vem de cada service, para que `core/` não conheça nomes de tabelas ou índices de nenhum contexto.
  */
 
 /** Código do Postgres para violação de unicidade (unique_violation). */
 const PG_UNIQUE_VIOLATION = '23505';
-
-/** Mensagens para os índices únicos que o utilizador pode violar ao preencher um formulário. */
-const MENSAGENS_UNICIDADE: Record<string, string> = {
-    UQ_categoria_nome_ativo: 'Já existe uma categoria com esse nome.',
-    UQ_grupo_categoria_nome_ativo: 'Já existe um grupo com esse nome.',
-    UQ_categoria_papel_ativo: 'Já existe outra categoria com esse papel.'
-};
 
 interface DriverError {
     code?: string;
@@ -22,16 +19,16 @@ interface DriverError {
 }
 
 /**
- * Devolve a mensagem a mostrar para `e`, usando `fallback` para erros de base de dados sem mensagem própria.
+ * Devolve a mensagem a mostrar para a exceção `e`: a de `mensagensUnicidade` quando `e` é uma violação de um desses
+ * índices únicos, `fallback` em todos os outros casos.
+ * @param e - a exceção apanhada
+ * @param fallback - mensagem genérica, em PT-PT, da operação que falhou
+ * @param mensagensUnicidade - nome do índice único → mensagem a mostrar quando é violado
  */
-export function mensagemErro(e: unknown, fallback: string): string {
-    if (!(e instanceof Error)) return fallback;
-
-    const driverError = (e as Error & { driverError?: DriverError }).driverError;
-    if (!driverError) return e.message;
-
-    if (driverError.code === PG_UNIQUE_VIOLATION && driverError.constraint) {
-        return MENSAGENS_UNICIDADE[driverError.constraint] ?? fallback;
+export function mensagemErro(e: unknown, fallback: string, mensagensUnicidade: Record<string, string> = {}): string {
+    const driverError = (e as { driverError?: DriverError } | null)?.driverError;
+    if (driverError?.code === PG_UNIQUE_VIOLATION && driverError.constraint) {
+        return mensagensUnicidade[driverError.constraint] ?? fallback;
     }
     return fallback;
 }
