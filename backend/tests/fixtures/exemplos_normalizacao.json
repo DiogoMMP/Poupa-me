@@ -1,0 +1,20 @@
+[
+  { "entrada": "Pagamento 123 - Tarifário", "esperado": "pagamento tarifario" },
+  { "entrada": "CONTINENTE  Bom Dia", "esperado": "continente bom dia" },
+  { "entrada": "Continente", "esperado": "continente" },
+  { "entrada": "Ação Solidária", "esperado": "acao solidaria" },
+  { "entrada": "PÃO QUENTE", "esperado": "pao quente" },
+  { "entrada": "Café Ñandú", "esperado": "cafe nandu" },
+  { "entrada": "Mercadona 2024/05/12", "esperado": "mercadona" },
+  { "entrada": "Uber*Trip", "esperado": "uber trip" },
+  { "entrada": "Galp, Lda.", "esperado": "galp lda" },
+  { "entrada": "Coca-Cola", "esperado": "coca cola" },
+  { "entrada": "  Pingo   Doce  ", "esperado": "pingo doce" },
+  { "entrada": "Netflix\tPremium\n", "esperado": "netflix premium" },
+  { "entrada": "MB WAY 912345678", "esperado": "mb way" },
+  { "entrada": "Loja123Online", "esperado": "lojaonline" },
+  { "entrada": "123456", "esperado": "" },
+  { "entrada": "12 - 34", "esperado": "" },
+  { "entrada": "!!!", "esperado": "" },
+  { "entrada": "", "esperado": "" }
+]

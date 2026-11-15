@@ -97,7 +97,17 @@ export default {
 
     ai: {
         hfToken: process.env.HF_TOKEN,
-        model: 'Qwen/Qwen2.5-7B-Instruct',
+        // Modelo do LLM (camada 3): tem de ser servido por um dos Inference Providers ativos na conta HF.
+        model: process.env.HF_MODEL ?? 'Qwen/Qwen2.5-7B-Instruct',
+        // Categorizador Space (camada 2 da sugestão, F0009): id "owner/nome" ou URL; sem ele a camada é saltada.
+        spaceId: process.env.HF_SPACE_ID,
+        spaceTimeoutMs: Number(process.env.IA_SPACE_TIMEOUT_MS ?? 8000),
+        limiarConfianca: Number(process.env.IA_LIMIAR_CONFIANCA ?? 0.6),
+        // Nomes de categorias que a sugestão nunca propõe (comparação sem maiúsculas nem acentos).
+        categoriasExcluidas: (process.env.IA_CATEGORIAS_EXCLUIDAS ?? 'Outros,Sem Categoria')
+            .split(',')
+            .map(nome => nome.trim())
+            .filter(nome => nome.length > 0),
     },
 
     services: {
