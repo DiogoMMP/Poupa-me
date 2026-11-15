@@ -64,6 +64,8 @@ financeiro num dashboard intuitivo — tudo num só lugar.
 ### 🏷️ Categorias
 
 - Criação de categorias personalizadas com emoji (Apenas Admin)
+- Grupos de categorias com cor, tipo (entrada, saída ou ambos) e ordem definida pelo Admin, com arrastar e largar
+- Selects de categoria agrupados e filtrados pelo tipo do movimento
 - Organização de despesas e receitas
 - Filtros de transações por categoria
 
@@ -240,6 +242,7 @@ http://localhost:3000/api-docs
 | `POST` | `/api/conta`          | Criar conta           |
 | `GET`  | `/api/cartao-credito` | Listar cartões        |
 | `GET`  | `/api/categoria`      | Listar categorias     |
+| `GET`  | `/api/grupo-categoria` | Listar grupos de categorias |
 | `GET`  | `/api/banco`          | Listar bancos         |
 | `POST` | `/api/import`         | Importar extrato      |
 
@@ -285,6 +288,7 @@ poupa-me/
 │   │   │   ├── Categoria/
 │   │   │   ├── Conta/
 │   │   │   ├── DespesaRecorrente/
+│   │   │   ├── GrupoCategoria/
 │   │   │   ├── Shared/          # Value Objects partilhados
 │   │   │   ├── Transacao/
 │   │   │   └── User/

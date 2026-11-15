@@ -33,7 +33,7 @@ GitHub Actions (`.github/workflows/node.js.yml`) runs on push/PR to `main`: `npm
 
 ## Backend architecture
 
-Layered/DDD structure under `backend/src/`, per bounded context (`Banco`, `Conta`, `CartaoCredito`, `Categoria`, `DespesaRecorrente`, `Transacao`, `User`, `Estatisticas`, `IACategorizacao`, `Auth`):
+Layered/DDD structure under `backend/src/`, per bounded context (`Banco`, `Conta`, `CartaoCredito`, `Categoria`, `GrupoCategoria`, `DespesaRecorrente`, `Transacao`, `User`, `Estatisticas`, `IACategorizacao`, `Auth`):
 
 ```
 domain/<Context>/Entities/       # AggregateRoot / Entity subclasses, private constructor + static create()
