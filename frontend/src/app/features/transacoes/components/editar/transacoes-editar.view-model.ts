@@ -49,7 +49,6 @@ export class TransacoesEditarViewModel {
       this.loadContas(id);
       this.loadCartoes(id);
     });
-    this.loadCategorias();
   }
 
   /**
@@ -63,6 +62,8 @@ export class TransacoesEditarViewModel {
     this.service.getById(id).subscribe({
       next: (dto) => {
         this.transacao$.next(dto);
+        // As categorias dependem do tipo da transação (grupos Entrada/Saída), por isso só carregam depois dela
+        this.loadCategorias(dto);
         this.isLoading$.next(false);
       },
       error: (err) => {
@@ -151,8 +152,14 @@ export class TransacoesEditarViewModel {
     });
   }
 
-  private loadCategorias(): void {
-    this.categoriasService.getAll().subscribe({
+  /**
+   * Loads the categorias of the groups that match the transaction's tipo (Entrada/Reembolso -> Entrada,
+   * Saída/Crédito -> Saída), keeping the transaction's current categoria in its group even when that group is of the
+   * other tipo, so the select is never left without the current value.
+   */
+  private loadCategorias(transacao: TransacoesDTO): void {
+    const tipoGrupo = transacao.tipo === 'Entrada' || transacao.tipo === 'Reembolso' ? 'Entrada' : 'Saída';
+    this.categoriasService.getAll(tipoGrupo, transacao.categoria?.id).subscribe({
       next: (dtos) => this.categorias$.next(dtos as CategoriasModel[]),
       error: () => this.categorias$.next([])
     });

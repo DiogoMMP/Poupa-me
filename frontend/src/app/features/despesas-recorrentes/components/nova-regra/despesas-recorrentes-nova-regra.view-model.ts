@@ -45,7 +45,7 @@ export class DespesasRecorrentesNovaRegraViewModel {
   }
 
   private loadCategorias(): void {
-    this.categoriasService.getAll().subscribe({
+    this.categoriasService.getAll('Saída').subscribe({
       next: cats => this.categorias$.next(cats),
       error: () => this.notification.error('Falha ao carregar categorias')
     });

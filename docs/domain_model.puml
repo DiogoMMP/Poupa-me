@@ -60,6 +60,27 @@ package "Agendamento " <<aggregate>> {
 package "Categoria " <<aggregate>> {
     class Categoria <<Entity>> <<root>>{
     }
+
+    class PapelCategoria <<Value Object>> {
+    }
+
+    ' Papel único entre categorias ativas (p.ex. PagamentoCartao)
+    Categoria "1" --> "0..1" PapelCategoria: desempenha
+}
+
+package "GrupoCategoria " <<aggregate>> {
+    class GrupoCategoria <<Entity>> <<root>>{
+    }
+
+    class TipoGrupoCategoria <<Value Object>> {
+    }
+
+    class CorGrupoCategoria <<Value Object>> {
+    }
+
+    ' Tipo decide em que selects aparece; cor é uma chave da paleta fechada
+    GrupoCategoria "1" --> "1" TipoGrupoCategoria: é do tipo
+    GrupoCategoria "1" --> "1" CorGrupoCategoria: pintado com
 }
 
 package "Shared " <<shared>> {
@@ -103,6 +124,8 @@ DespesaRecorrente "1" --> "1" Dinheiro: valor estimado
 ' Categoria e Banco (Shared VOs)
 Categoria "1" ---> "0..1" Icon: ilustrada por
 Categoria "1" ---> "1" Nome: denominada
+Categoria "0..*" --> "0..1" GrupoCategoria: agrupada em
+GrupoCategoria "1" ---> "1" Nome: intitulado
 Banco "1" ---> "0..1" Icon: ostenta marca
 Banco "1" ---> "1" Nome: chamado
 

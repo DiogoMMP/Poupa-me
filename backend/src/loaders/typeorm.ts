@@ -6,6 +6,7 @@ import config from '../config/index.js';
 import {UserEntity} from '../persistence/entities/UserEntity.js';
 import Logger from './logger.js';
 import {CategoriaEntity} from "../persistence/entities/CategoriaEntity.js";
+import {GrupoCategoriaEntity} from "../persistence/entities/GrupoCategoriaEntity.js";
 import {TransacaoEntity} from "../persistence/entities/TransacaoEntity.js";
 import {ContaEntity} from "../persistence/entities/ContaEntity.js";
 import {CartaoCreditoEntity} from "../persistence/entities/CartaoCreditoEntity.js";
@@ -28,6 +29,7 @@ export default async function createTypeOrmDataSource(): Promise<DataSource> {
         entities: [
             UserEntity,
             CategoriaEntity,
+            GrupoCategoriaEntity,
             TransacaoEntity,
             ContaEntity,
             CartaoCreditoEntity,

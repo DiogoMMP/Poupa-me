@@ -3,13 +3,33 @@ import { CommonModule, CurrencyPipe } from '@angular/common';
 import {RouterModule, Routes} from '@angular/router';
 import {AuthService} from '../../auth/services/auth.service';
 import { signal } from '@angular/core';
-import { EstatisticasViewModel } from './estatisticas.view-model';
+import { EstatisticasViewModel, GastosGrupo } from './estatisticas.view-model';
 import { FormsModule } from '@angular/forms';
 import { NgxChartsModule } from '@swimlane/ngx-charts';
-import { map } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { SelectComponent, AppSelectOption } from '../../../shared/components/select/select.component';
+import { CORES_GRUPO } from '../../../shared/constants/cores-grupo';
+
+/** Cores das fatias quando não há cor de grupo (vista por categoria e detalhe de um grupo): a paleta, em ciclo. */
+const PALETA_FATIAS: string[] = Object.values(CORES_GRUPO);
+
+/** Linha de uma legenda HTML de um donut (o nome quebra linha, ao contrário das etiquetas SVG do ngx-charts). */
+export interface LinhaLegenda {
+  nome: string;
+  icon?: string;
+  valor: number;
+  percentagem: number;
+  cor: string;
+}
+
+const FORMATO_EURO = new Intl.NumberFormat('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** Escapa texto para o HTML do tooltip do ngx-charts (os nomes das categorias são escritos pelo utilizador). */
+function escaparHtml(texto: string): string {
+  return texto.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+}
 /**
  * Estatisticas component.
  */
@@ -40,10 +60,80 @@ export class EstatisticasComponent implements OnInit {
   isLoading$ = this.vm.isLoading$;
   hasBancoSelected$ = this.vm.hasBancoSelected$;
 
+  // Vista do cartão de gastos ("Por grupo" / "Por categoria") e detalhe do grupo aberto
+  vista$ = this.vm.vista$;
+  gastosPorGrupo$ = this.vm.gastosPorGrupo$;
+  detalheGrupo$ = this.vm.detalheGrupo$;
+
   // Chart data
-  pieChartData$ = this.estatisticas$.pipe(
-    map(stats => stats?.categorias.map(c => ({ name: c.categoria.nome, value: c.total.valor })))
+  /** Legenda da vista "Por categoria": nome, valor, % e cor da fatia. */
+  legendaCategorias$ = this.estatisticas$.pipe(
+    map((stats): LinhaLegenda[] => {
+      const categorias = stats?.categorias ?? [];
+      const total = categorias.reduce((s, c) => s + c.total.valor, 0);
+      return categorias.map((c, i) => ({
+        nome: c.categoria.nome,
+        icon: c.categoria.icon,
+        valor: c.total.valor,
+        percentagem: total > 0 ? (c.total.valor / total) * 100 : 0,
+        cor: PALETA_FATIAS[i % PALETA_FATIAS.length]
+      }));
+    })
   );
+
+  pieChartData$ = this.legendaCategorias$.pipe(
+    map(linhas => linhas.map(l => ({ name: l.nome, value: l.valor })))
+  );
+
+  /** Cores das fatias da vista "Por categoria", iguais às da legenda. */
+  pieChartColors$ = this.legendaCategorias$.pipe(
+    map(linhas => linhas.map(l => ({ name: l.nome, value: l.cor })))
+  );
+
+  /** Uma fatia por grupo. */
+  pieGruposData$ = this.gastosPorGrupo$.pipe(
+    // A fatia é identificada pela chave do grupo, não pelo nome: um grupo apagado e outro novo podem ter o mesmo nome
+    // nas estatísticas, e o ngx-charts junta cores e cliques por `name`. O nome mostrado vem de `nomePorChave`.
+    tap(grupos => { this.nomePorChave = new Map(grupos.map(g => [g.chave, g.nome])); }),
+    map(grupos => grupos.map(g => ({ name: g.chave, value: g.total })))
+  );
+
+  /** Cor de cada fatia = cor do grupo (`customColors` do ngx-charts, pelo nome da fatia). */
+  pieGruposColors$ = this.gastosPorGrupo$.pipe(
+    map(grupos => grupos.map(g => ({ name: g.chave, value: g.cor })))
+  );
+
+  /** Donut das categorias do grupo aberto no detalhe. */
+  pieDetalheData$ = this.detalheGrupo$.pipe(
+    map(grupo => grupo?.categorias.map(c => ({ name: c.nome, value: c.valor })) ?? [])
+  );
+
+  /** Cores das fatias do detalhe, as mesmas dos pontos da tabela (`corDetalhe`). */
+  pieDetalheColors$ = this.detalheGrupo$.pipe(
+    map(grupo => grupo?.categorias.map((c, i) => ({ name: c.nome, value: this.corDetalhe(i) })) ?? [])
+  );
+
+  /** Cor da i-ésima categoria do detalhe de um grupo. */
+  corDetalhe(i: number): string {
+    return PALETA_FATIAS[i % PALETA_FATIAS.length];
+  }
+
+  /** Tooltip dos donuts: nome e valor em euros. */
+  /** Chave → nome dos grupos do donut "Por grupo" (as fatias desse donut usam a chave como `name`). */
+  private nomePorChave = new Map<string, string>();
+
+  readonly tooltipEuro = (arc: { data: { name: string; value: number } }): string =>
+    `<span class="tooltip-label">${escaparHtml(this.nomePorChave.get(String(arc.data.name)) ?? String(arc.data.name))}</span>` +
+    `<span class="tooltip-val">${FORMATO_EURO.format(Number(arc.data.value) || 0)} €</span>`;
+
+  /**
+   * Clique numa fatia do donut dos grupos: abre o detalhe do grupo com essa chave (o `name` da fatia).
+   */
+  onSelectGrupo(event: { name?: string } | string, grupos: GastosGrupo[]): void {
+    const chave = typeof event === 'string' ? event : event?.name;
+    const grupo = grupos.find(g => g.chave === chave);
+    if (grupo) this.vm.abrirGrupo(grupo.chave);
+  }
 
   lineChartData$ = this.estatisticas$.pipe(
     map(stats => stats ? [{

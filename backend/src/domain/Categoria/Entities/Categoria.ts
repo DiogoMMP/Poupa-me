@@ -1,5 +1,6 @@
 import type {Nome} from "../../Shared/ValueObjects/Nome.js";
 import type {Icon} from "../../Shared/ValueObjects/Icon.js";
+import type {PapelCategoria} from "../ValueObjects/PapelCategoria.js";
 import {AggregateRoot} from "../../../core/domain/AggregateRoot.js";
 import {Result} from "../../../core/logic/Result.js";
 import {Guard} from "../../../core/logic/Guard.js";
@@ -11,6 +12,11 @@ import type {UniqueEntityID} from "../../../core/domain/UniqueEntityID.js";
 interface CategoriaProps {
     nome: Nome;
     icon: Icon;
+    /** Domain id of the GrupoCategoria; absent for categorias still in "Sem grupo". */
+    grupoId?: UniqueEntityID;
+    /** Position inside the group (or inside "Sem grupo"); 0 when not yet positioned. */
+    ordem?: number;
+    papel?: PapelCategoria;
 }
 
 /**
@@ -30,6 +36,27 @@ export class Categoria extends AggregateRoot<CategoriaProps> {
      */
     get icon(): Icon {
         return this.props.icon;
+    }
+
+    /**
+     * Gets the domain id of the GrupoCategoria this Categoria belongs to, if any
+     */
+    get grupoId(): UniqueEntityID | undefined {
+        return this.props.grupoId;
+    }
+
+    /**
+     * Gets the position of the Categoria inside its group
+     */
+    get ordem(): number {
+        return this.props.ordem ?? 0;
+    }
+
+    /**
+     * Gets the papel of the Categoria, if any
+     */
+    get papel(): PapelCategoria | undefined {
+        return this.props.papel;
     }
 
     /**
@@ -57,6 +84,10 @@ export class Categoria extends AggregateRoot<CategoriaProps> {
         const guardResult = Guard.againstNullOrUndefinedBulk(guardedProps);
         if (!guardResult.succeeded) {
             return Result.fail<Categoria>(guardResult.message || 'Invalid categoria properties');
+        }
+
+        if (props.ordem !== undefined && (!Number.isInteger(props.ordem) || props.ordem < 0)) {
+            return Result.fail<Categoria>('ordem must be a non-negative integer');
         }
 
         const categoria = new Categoria(props, id);

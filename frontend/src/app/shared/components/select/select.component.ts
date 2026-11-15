@@ -6,6 +6,7 @@ import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { IconComponent } from '../icon/icon.component';
 import { SelectRegistryService } from './select-registry.service';
+import { fundoIconeGrupo } from '../../constants/cores-grupo';
 
 /**
  * Uma opção do `<app-select>`.
@@ -13,6 +14,15 @@ import { SelectRegistryService } from './select-registry.service';
 export interface AppSelectOption {
   value: any;
   label: string;
+  /**
+   * Nome do grupo. Quando muda entre opções consecutivas, a lista mostra um cabeçalho de texto simples com este
+   * nome. Os cabeçalhos não são opções: a navegação por teclado salta-os.
+   */
+  group?: string;
+  /** Emoji mostrado num círculo à esquerda do `label` (que passa a ser só o nome). */
+  icon?: string;
+  /** Cor (hex) do círculo do `icon`: fundo a 30% e contorno com a cor sólida. */
+  color?: string;
 }
 
 /**
@@ -80,6 +90,25 @@ export class SelectComponent implements ControlValueAccessor {
     const v = this.value();
     return this.optionsSignal().find(o => o.value === v) ?? null;
   });
+
+  /**
+   * Indica se a opção no índice `index` abre um grupo novo (tem `group` e é diferente do da opção anterior),
+   * caso em que a lista desenha o cabeçalho do grupo antes dela.
+   */
+  startsGroup(index: number): boolean {
+    const group = this.options[index]?.group;
+    return !!group && (index === 0 || this.options[index - 1]?.group !== group);
+  }
+
+  /** Fundo do círculo do ícone de uma opção (cor a 30%). */
+  iconBackground(option: AppSelectOption): string | null {
+    return option.color ? fundoIconeGrupo(option.color) : null;
+  }
+
+  /** Contorno do círculo do ícone de uma opção (cor sólida). */
+  iconBorder(option: AppSelectOption): string | null {
+    return option.color ?? null;
+  }
 
   private onChange: (value: any) => void = () => {};
   private onTouched: () => void = () => {};

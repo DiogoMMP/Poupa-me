@@ -1,0 +1,12 @@
+<div class="cor-swatches" role="radiogroup" [attr.aria-labelledby]="labelledBy" (keydown)="onKeydown($event)">
+  <button #amostra *ngFor="let cor of cores; let i = index" type="button" class="cor-swatch"
+    role="radio"
+    [attr.aria-checked]="value() === cor"
+    [attr.aria-label]="cor"
+    [attr.tabindex]="i === indiceFocavel() ? 0 : -1"
+    [title]="cor"
+    [class.selected]="value() === cor"
+    [disabled]="disabled()"
+    [style.background]="hex(cor)"
+    (click)="escolher(cor)"></button>
+</div>

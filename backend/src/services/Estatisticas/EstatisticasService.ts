@@ -2,9 +2,13 @@ import { Service, Inject } from 'typedi';
 import { Result } from '../../core/logic/Result.js';
 import type ITransacaoContaQueryRepo from '../../repos/Transacao/IRepos/ITransacaoContaQueryRepo.js';
 import type ITransacaoCartaoQueryRepo from '../../repos/Transacao/IRepos/ITransacaoCartaoQueryRepo.js';
+import type IGrupoCategoriaRepo from '../../repos/GrupoCategoria/IGrupoCategoriaRepo.js';
+import type ICategoriaRepo from '../../repos/Categoria/ICategoriaRepo.js';
 import type { IEstatisticasDTO, ICategoriaEstatistica, IHistoricoDiario } from '../../dto/IEstatisticasDTO.js';
 import type { IDataDTO } from '../../dto/shared/IDataDTO.js';
 import { CategoriaMap } from '../../mappers/CategoriaMap.js';
+import { GrupoCategoriaMap } from '../../mappers/GrupoCategoriaMap.js';
+import type { IGrupoCategoriaDTO } from '../../dto/IGrupoCategoriaDTO.js';
 import type { Categoria } from '../../domain/Categoria/Entities/Categoria.js';
 import IEstatisticasService from "./IEstatisticasService.js";
 
@@ -16,6 +20,8 @@ export default class EstatisticasService implements IEstatisticasService {
     constructor(
         @Inject('TransacaoContaQueryRepo') private transacaoContaQueryRepo: ITransacaoContaQueryRepo,
         @Inject('TransacaoCartaoQueryRepo') private transacaoCartaoQueryRepo: ITransacaoCartaoQueryRepo,
+        @Inject('GrupoCategoriaRepo') private grupoCategoriaRepo: IGrupoCategoriaRepo,
+        @Inject('CategoriaRepo') private categoriaRepo: ICategoriaRepo,
         @Inject('logger') private logger: { error: (...args: unknown[]) => void }
     ) {}
 
@@ -28,10 +34,18 @@ export default class EstatisticasService implements IEstatisticasService {
             const filterUserId = userRole === 'Admin' ? undefined : userId;
 
             // Fetch all conta (Entrada/Saída) and cartao (Crédito/Reembolso) transactions for this banco/user
-            const [contaTransacoes, cartaoTransacoes] = await Promise.all([
+            // The transaction queries only join the categoria (not its group), so the group of each categoria comes
+            // from the categoria/grupo repos. Inactive ones included: an old movimento keeps its categoria and group.
+            const [contaTransacoes, cartaoTransacoes, grupos, todasCategorias] = await Promise.all([
                 this.transacaoContaQueryRepo.findAllContaTransactions({ userId: filterUserId, bancoId }),
-                this.transacaoCartaoQueryRepo.findAllCartaoTransactions({ userId: filterUserId, bancoId })
+                this.transacaoCartaoQueryRepo.findAllCartaoTransactions({ userId: filterUserId, bancoId }),
+                this.grupoCategoriaRepo.findAll(true),
+                this.categoriaRepo.findAll(true)
             ]);
+            const grupoPorId = new Map<string, IGrupoCategoriaDTO>(grupos.map(g => [g.id.toString(), GrupoCategoriaMap.toDTO(g)]));
+            const grupoIdPorCategoria = new Map<string, string | null>(
+                todasCategorias.map(c => [c.id.toString(), c.grupoId?.toString() ?? null])
+            );
 
             // Build date range. If the requested month/year is the current month/year,
             // interpret "este mês" as a rolling 1-month window: from today minus one month (same day)
@@ -75,7 +89,7 @@ export default class EstatisticasService implements IEstatisticasService {
             const netBalance = totalIn - totalOut;
 
             // 2) Aggregation by category (only expenses: Saída and Crédito)
-            const categoriaMap = new Map<string, { categoria: ICategoriaEstatistica['categoria']; total: number; moeda: string }>();
+            const categoriaMap = new Map<string, { categoria: ICategoriaEstatistica['categoria']; total: number; moeda: string; numTransacoes: number }>();
 
             const accumulateCategoria = (t: unknown) => {
                 const tr = t as { categoria?: { id: { toString(): string } }; valor?: { value?: number; moeda?: string } };
@@ -86,10 +100,12 @@ export default class EstatisticasService implements IEstatisticasService {
                 const existing = categoriaMap.get(catId);
                 if (existing) {
                     existing.total += valor;
+                    existing.numTransacoes += 1;
                 } else {
                     // map categoria domain to DTO where possible
                     const catDto = CategoriaMap.toDTO((tr.categoria as unknown) as Categoria);
-                    categoriaMap.set(catId, { categoria: catDto, total: valor, moeda });
+                    catDto.grupoId = grupoIdPorCategoria.get(catId) ?? null;
+                    categoriaMap.set(catId, { categoria: catDto, total: valor, moeda, numTransacoes: 1 });
                 }
             };
 
@@ -102,7 +118,9 @@ export default class EstatisticasService implements IEstatisticasService {
 
             const categorias: ICategoriaEstatistica[] = Array.from(categoriaMap.values()).map(v => ({
                 categoria: v.categoria,
-                total: { valor: v.total, moeda: v.moeda }
+                grupo: v.categoria.grupoId ? (grupoPorId.get(v.categoria.grupoId) ?? null) : null,
+                total: { valor: v.total, moeda: v.moeda },
+                numTransacoes: v.numTransacoes
             }));
 
             // 3) Daily history (expenses only) - group by date

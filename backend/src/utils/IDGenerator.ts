@@ -145,6 +145,16 @@ export const CategoriaIdHelper = {
 };
 
 /**
+ * GrupoCategoria domain ID helpers - prefix 'GCT'
+ */
+export const GrupoCategoriaIdHelper = {
+  prefix: 'GCT',
+  generateFirst: () => generateFirstId('GCT'),
+  generateNext: (maxSeq: number) => generateNextId(maxSeq, 'GCT'),
+  extractSequence: (id: string) => extractSequenceNumber(id, 'GCT')
+};
+
+/**
  * CartaoCredito domain ID helpers - prefix 'CCR'
  */
 export const CartaoCreditoIdHelper = {

@@ -19,9 +19,21 @@ export interface ICategoriaDTO {
   icon: string;
 }
 
+export interface IGrupoEstatisticaDTO {
+  id?: string;
+  nome: string;
+  tipo: string;
+  /** Chave da paleta (ver `shared/constants/cores-grupo.ts`). */
+  cor: string;
+  ordem: number;
+}
+
 export interface ICategoriaEstatisticaDTO {
   categoria: ICategoriaDTO;
+  /** Grupo da categoria; null = "Sem grupo". */
+  grupo: IGrupoEstatisticaDTO | null;
   total: IDinheiroProps;
+  numTransacoes: number;
 }
 
 export interface IHistoricoDiarioDTO {

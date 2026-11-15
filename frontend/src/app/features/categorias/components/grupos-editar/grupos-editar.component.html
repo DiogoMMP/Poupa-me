@@ -1,0 +1,38 @@
+<div class="page-container">
+  <div class="form-card">
+    <div class="form-header">
+      <h1 class="form-title">Editar Grupo</h1>
+      <p class="form-subtitle">Atualize as informações do grupo de categorias</p>
+    </div>
+
+    <div *ngIf="vm.isLoading$ | async" class="loading-state">A carregar...</div>
+
+    <form *ngIf="!(vm.isLoading$ | async)" [formGroup]="form" (ngSubmit)="onSubmit()" class="form-content">
+      <div class="form-field">
+        <label for="nome" class="form-label">Nome</label>
+        <input type="text" id="nome" formControlName="nome" class="form-input" placeholder="Ex: Alimentação">
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Tipo</label>
+        <app-select [options]="tipoOptions" formControlName="tipo" ariaLabel="Tipo do grupo"></app-select>
+      </div>
+
+      <div class="form-field">
+        <span class="form-label" id="cor-label">Cor</span>
+        <app-cor-grupo-picker formControlName="cor" labelledBy="cor-label"></app-cor-grupo-picker>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" [disabled]="form.invalid || (vm.isLoading$ | async)">
+          <app-icon name="FloppyDisk" [size]="16"></app-icon>
+          <span>Guardar</span>
+        </button>
+
+        <button type="button" routerLink="/categorias" class="btn-secondary">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

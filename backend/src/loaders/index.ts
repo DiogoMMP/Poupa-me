@@ -43,6 +43,21 @@ export default async ({expressApp}: { expressApp: Application }) => {
         path: config.services.categoria.path
     };
 
+    const grupoCategoriaController = {
+        name: config.controllers.grupoCategoria.name,
+        path: config.controllers.grupoCategoria.path
+    };
+
+    const grupoCategoriaRepo = {
+        name: config.repos.grupoCategoria.name,
+        path: config.repos.grupoCategoria.path
+    };
+
+    const grupoCategoriaService = {
+        name: config.services.grupoCategoria.name,
+        path: config.services.grupoCategoria.path
+    };
+
 
 
 
@@ -226,6 +241,7 @@ export default async ({expressApp}: { expressApp: Application }) => {
         controllers: [
             authController,
             categoriaController,
+            grupoCategoriaController,
             transacaoController,
             transacaoContaQueryController,
             transacaoCartaoQueryController,
@@ -240,6 +256,7 @@ export default async ({expressApp}: { expressApp: Application }) => {
         repos: [
             userRepo,
             categoriaRepo,
+            grupoCategoriaRepo,
             transacaoRepo,
             transacaoContaQueryRepo,
             transacaoCartaoQueryRepo,
@@ -255,6 +272,7 @@ export default async ({expressApp}: { expressApp: Application }) => {
         services: [
             authService,
             categoriaService,
+            grupoCategoriaService,
             transacaoDespesasRecorrentesService,
             transacaoService,
             transacaoContaQueryService,

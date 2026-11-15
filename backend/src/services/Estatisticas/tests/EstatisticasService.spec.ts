@@ -12,6 +12,8 @@ import { Periodo } from '../../../domain/CartaoCredito/ValueObjects/Periodo.js';
 import { UniqueEntityID } from '../../../core/domain/UniqueEntityID.js';
 import type ITransacaoContaQueryRepo from '../../../repos/Transacao/IRepos/ITransacaoContaQueryRepo.js';
 import type ITransacaoCartaoQueryRepo from '../../../repos/Transacao/IRepos/ITransacaoCartaoQueryRepo.js';
+import type IGrupoCategoriaRepo from '../../../repos/GrupoCategoria/IGrupoCategoriaRepo.js';
+import type ICategoriaRepo from '../../../repos/Categoria/ICategoriaRepo.js';
 
 function buildCartao(): CartaoCredito {
   const nome = Nome.create('Cartão Teste').getValue();
@@ -52,9 +54,15 @@ describe('EstatisticasService — isPagamentoCartao excluded from aggregation (i
     findCartaoTransactionsPage: jest.fn()
   };
 
+  // Grupos e categorias (F0008): só para enriquecer cada entrada com o grupo; vazios aqui.
+  const grupoCategoriaRepo = { findAll: jest.fn<() => Promise<never[]>>() };
+  const categoriaRepo = { findAll: jest.fn<() => Promise<never[]>>() };
+
   const service = new EstatisticasService(
     contaQueryRepo,
     cartaoQueryRepo,
+    grupoCategoriaRepo as unknown as IGrupoCategoriaRepo,
+    categoriaRepo as unknown as ICategoriaRepo,
     { error: jest.fn() }
   );
 
@@ -82,6 +90,8 @@ describe('EstatisticasService — isPagamentoCartao excluded from aggregation (i
 
     contaQueryRepo.findAllContaTransactions.mockResolvedValue([]);
     cartaoQueryRepo.findAllCartaoTransactions.mockResolvedValue([compra, pagamento]);
+    grupoCategoriaRepo.findAll.mockResolvedValue([]);
+    categoriaRepo.findAll.mockResolvedValue([]);
 
     return { cartao, categoria, compra, pagamento };
   }

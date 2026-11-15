@@ -21,7 +21,21 @@ const route = Router();
  *           example: "Groceries"
  *         icon:
  *           type: string
- *           example: "shopping-cart"
+ *           example: "🛒"
+ *         grupoId:
+ *           type: string
+ *           nullable: true
+ *           description: Domain ID of the group; null while the categoria is in "Sem grupo".
+ *           example: "GCT00000000002"
+ *         ordem:
+ *           type: integer
+ *           description: Position inside the group.
+ *           example: 1
+ *         papel:
+ *           type: string
+ *           nullable: true
+ *           enum: [PagamentoCartao]
+ *           example: null
  *     CategoriaInput:
  *       type: object
  *       required: [nome, icon]
@@ -30,6 +44,45 @@ const route = Router();
  *           type: string
  *         icon:
  *           type: string
+ *         grupoId:
+ *           type: string
+ *           description: Required on create (see CategoriaCreateInput); on update, moves the categoria to the end of that (active) group.
+ *         papel:
+ *           type: string
+ *           nullable: true
+ *           enum: [PagamentoCartao]
+ *           description: Optional on create and update. Setting it takes it from the categoria that had it; on update, null clears it and leaving it out keeps it.
+ *     CategoriaCreateInput:
+ *       description: Body of POST /categoria. Same fields as CategoriaInput, with grupoId required.
+ *       allOf:
+ *         - $ref: '#/components/schemas/CategoriaInput'
+ *         - type: object
+ *           required: [nome, icon, grupoId]
+ *     CategoriasAgrupadas:
+ *       type: object
+ *       properties:
+ *         grupo:
+ *           nullable: true
+ *           description: The group, or null for "Sem grupo" (always last, only when it has categorias).
+ *           allOf:
+ *             - $ref: '#/components/schemas/GrupoCategoria'
+ *         categorias:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Categoria'
+ *     ReordenarCategoriasInput:
+ *       type: object
+ *       required: [grupoId, ids]
+ *       properties:
+ *         grupoId:
+ *           type: string
+ *           nullable: true
+ *           description: Domain ID of the group, or null for "Sem grupo".
+ *         ids:
+ *           type: array
+ *           description: Domain IDs of all active categorias of that group, in the new order.
+ *           items:
+ *             type: string
  */
 export default (app: Router) => {
   app.use('/categoria', route);
@@ -43,7 +96,7 @@ export default (app: Router) => {
    *     tags:
    *       - Categoria
    *     summary: Create a new categoria
-   *     description: Creates a new categoria. Admin only.
+   *     description: Creates a new categoria at the end of its group (grupoId is required). Admin only.
    *     security:
    *       - bearerAuth: []
    *     requestBody:
@@ -51,7 +104,7 @@ export default (app: Router) => {
    *       content:
    *         application/json:
    *           schema:
-   *             $ref: '#/components/schemas/CategoriaInput'
+   *             $ref: '#/components/schemas/CategoriaCreateInput'
    *     responses:
    *       201:
    *         description: Categoria created
@@ -70,21 +123,48 @@ export default (app: Router) => {
    *   get:
    *     tags:
    *       - Categoria
-   *     summary: Get all categorias
-   *     description: Returns list of categorias. Requires authentication.
+   *     summary: Get all categorias, grouped
+   *     description: Returns the active categorias grouped by their active group, groups and categorias by the order defined by the Admin. Groups without categorias are included; "Sem grupo" (grupo null) comes last. Requires authentication.
    *     security:
    *       - bearerAuth: []
    *     responses:
    *       200:
-   *         description: List of categorias
+   *         description: Categorias grouped by group
    *         content:
    *           application/json:
    *             schema:
    *               type: array
    *               items:
-   *                 $ref: '#/components/schemas/Categoria'
+   *                 $ref: '#/components/schemas/CategoriasAgrupadas'
    */
   route.get('/', isAuth, (req, res, next) => ctrl.getAllCategorias(req as AuthenticatedRequest, res, next));
+
+  /**
+   * @openapi
+   * /categoria/ordem:
+   *   put:
+   *     tags:
+   *       - Categoria
+   *     summary: Reorder the categorias of a group
+   *     description: Rewrites ordem = position (1..n) in one DB transaction. The list must contain exactly all active categorias of the group (grupoId null = "Sem grupo"). Admin only.
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/ReordenarCategoriasInput'
+   *     responses:
+   *       200:
+   *         description: Order saved
+   *       400:
+   *         description: The list is not exactly the set of active categorias of the group
+   *       404:
+   *         description: Grupo not found
+   */
+  // Declared before PUT /:id so that "ordem" is not taken as an id.
+  route.put('/ordem', isAuth, authorize([Role.Admin]), (req, res, next) => ctrl.reordenarCategorias(req as AuthenticatedRequest, res, next));
 
   /**
    * @openapi

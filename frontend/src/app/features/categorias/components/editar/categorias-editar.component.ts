@@ -4,16 +4,18 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { createPicker } from 'picmo';
 import { CategoriasEditarViewModel } from './categorias-editar.view-model';
+import { PAPEL_OPTIONS } from '../../constants/categorias.constants';
 
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
+import { SelectComponent } from '../../../../shared/components/select/select.component';
 /**
  * Component to edit an existing category. It loads the category by ID from the route,
- * allows the user to change the category name and icon, and submit the changes.
+ * allows the user to change the category name, icon, group and papel, and submit the changes.
  */
 @Component({
   selector: 'app-categoria-editar',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule, IconComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, IconComponent, SelectComponent],
   templateUrl: './categorias-editar.component.html',
   styleUrls: ['./categorias-editar.component.css'],
   providers: [CategoriasEditarViewModel]
@@ -31,10 +33,14 @@ export class CategoriasEditarComponent implements OnInit, OnDestroy {
   showEmojiPicker = false;
   private picker: any = null;
 
+  readonly papelOptions = PAPEL_OPTIONS;
+
   constructor() {
     this.form = this.fb.group({
       nome: [''],
-      icon: ['']
+      icon: [''],
+      grupoId: [''],
+      papel: ['']
     });
   }
 
@@ -46,13 +52,16 @@ export class CategoriasEditarComponent implements OnInit, OnDestroy {
     this.id = this.route.snapshot.params['id'];
     if (this.id) {
       this.vm.loadData(this.id);
+      this.vm.loadGrupos();
 
       // Fill form when data arrives
       this.vm.categoria$.subscribe(cat => {
         if (cat) {
           this.form.patchValue({
             nome: cat.nome,
-            icon: cat.icon
+            icon: cat.icon,
+            grupoId: cat.grupoId ?? '',
+            papel: cat.papel ?? ''
           });
         }
       });

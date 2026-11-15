@@ -3,6 +3,10 @@
     <h1 class="page-title">Categorias</h1>
 
     <div class="page-actions">
+      <button routerLink="/categorias/grupos/criar" class="btn-secondary">
+        <app-icon name="FolderPlus" [size]="24" class="svg-icon"></app-icon>
+        <span>Criar Grupo</span>
+      </button>
       <button routerLink="/categorias/criar">
         <app-icon name="Plus" [size]="24" class="svg-icon"></app-icon>
         <span>Criar Categoria</span>
@@ -13,35 +17,68 @@
   <div *ngIf="isLoading$ | async" class="loading-state">A carregar...</div>
 
   <div *ngIf="!(isLoading$ | async)" class="content-container">
-    <ng-container *ngIf="(categorias$ | async) as categorias">
-      <div *ngIf="categorias.length === 0" class="empty-state">
-        <p>Não existem categorias criadas.</p>
+    <ng-container *ngIf="{ grupos: (grupos$ | async) ?? [], semGrupo: semGrupo$ | async } as data">
+      <div *ngIf="data.grupos.length === 0 && !data.semGrupo" class="empty-state">
+        <p>Não existem grupos nem categorias criados.</p>
       </div>
 
-      <div *ngIf="categorias.length > 0" class="cards-grid">
-        <div *ngFor="let categoria of categorias" class="card card--hover">
-          <div class="card-icon-wrapper">
-            <div class="card-icon card-icon--circle">{{ categoria.icon }}</div>
-          </div>
-
-          <div class="card-content">
-            <h3 class="card-title">{{ categoria.nome }}</h3>
-          </div>
-
-          <div class="card-actions">
-            <button [routerLink]="['/categorias/editar', categoria.id]" class="btn-action">
-              <app-icon name="Pencil" [size]="24" class="svg-icon"></app-icon>
-              <span>Editar</span>
-            </button>
-
-            <button (click)="deleteCategoria(categoria.id)" class="btn-delete">
-              <app-icon name="Trash" [size]="24" class="svg-icon"></app-icon>
-              <span>Eliminar</span>
-            </button>
-          </div>
-        </div>
+      <!-- Grupos: arrastam-se pela pega do cabeçalho -->
+      <div class="grupos-list" cdkDropList [cdkDropListData]="data.grupos" [cdkDropListDisabled]="(vm.aGravar$ | async) ?? false" (cdkDropListDropped)="vm.dropGrupo($event)">
+        <section *ngFor="let secao of data.grupos" class="grupo-section" cdkDrag cdkDragLockAxis="y">
+          <ng-container *ngTemplateOutlet="secaoTpl; context: { $implicit: secao, arrastavel: true }"></ng-container>
+        </section>
       </div>
+
+      <!-- "Sem grupo" fica no fim e não se arrasta; as categorias dentro dele sim -->
+      <section *ngIf="data.semGrupo as secao" class="grupo-section grupo-section--sem-grupo">
+        <ng-container *ngTemplateOutlet="secaoTpl; context: { $implicit: secao, arrastavel: false }"></ng-container>
+      </section>
     </ng-container>
   </div>
-
 </div>
+
+<ng-template #secaoTpl let-secao let-arrastavel="arrastavel">
+  <header class="grupo-header">
+    <button *ngIf="arrastavel" type="button" class="grupo-handle" cdkDragHandle
+      [attr.aria-label]="'Arrastar o grupo ' + secao.grupo.nome" title="Arrastar para reordenar">
+      <app-icon name="GripDotsVertical" [size]="18"></app-icon>
+    </button>
+    <h2 class="grupo-title">{{ secao.grupo?.nome ?? 'Sem grupo' }}</h2>
+    <span *ngIf="secao.grupo" class="grupo-tipo">{{ secao.grupo.tipo }}</span>
+
+    <div *ngIf="secao.grupo" class="grupo-actions">
+      <a class="btn-edit-small" routerLink="/categorias/criar" [queryParams]="{ grupo: secao.grupo.id }"
+        title="Criar categoria neste grupo" [attr.aria-label]="'Criar categoria no grupo ' + secao.grupo.nome">
+        <app-icon name="Plus" [size]="16"></app-icon>
+      </a>
+      <a class="btn-edit-small" [routerLink]="['/categorias/grupos/editar', secao.grupo.id]"
+        title="Editar grupo" [attr.aria-label]="'Editar o grupo ' + secao.grupo.nome">
+        <app-icon name="Pencil" [size]="16"></app-icon>
+      </a>
+      <button type="button" class="btn-delete-small" (click)="deleteGrupo(secao.grupo)"
+        title="Eliminar grupo" [attr.aria-label]="'Eliminar o grupo ' + secao.grupo.nome">
+        <app-icon name="Trash" [size]="16"></app-icon>
+      </button>
+    </div>
+  </header>
+
+  <p *ngIf="secao.categorias.length === 0" class="grupo-vazio">Este grupo ainda não tem categorias.</p>
+
+  <!-- Categorias: só se reordenam dentro do próprio grupo -->
+  <div *ngIf="secao.categorias.length > 0" class="cards-grid categorias-grid"
+    cdkDropList cdkDropListOrientation="mixed"
+    [cdkDropListData]="secao.categorias"
+    [cdkDropListDisabled]="(vm.aGravar$ | async) ?? false"
+    (cdkDropListDropped)="vm.dropCategoria(secao, $event)">
+    <app-entity-card *ngFor="let categoria of secao.categorias" class="categoria-card" cdkDrag
+      [title]="categoria.nome"
+      [editRoute]="['/categorias/editar', categoria.id]"
+      [showDelete]="true"
+      (deleteClicked)="deleteCategoria(categoria.id)">
+      <div card-icon class="card-icon card-icon--circle"
+        [style.background]="iconBackground(secao.grupo)"
+        [style.border-color]="iconBorder(secao.grupo)">{{ categoria.icon }}</div>
+      <span *ngIf="categoria.papel === 'PagamentoCartao'" class="badge categoria-papel">Pagamento de cartão</span>
+    </app-entity-card>
+  </div>
+</ng-template>

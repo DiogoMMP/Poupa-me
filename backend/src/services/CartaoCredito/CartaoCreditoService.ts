@@ -357,6 +357,13 @@ export default class CartaoCreditoService implements ICartaoCreditoService {
                 return Result.fail<ITransacaoDTO>("Conta de pagamento não encontrada");
             }
 
+            // The payment record goes to the categoria the Admin marked with the papel "Pagamento de cartão". Without
+            // one, fail here, before anything (saldos, período, transações) is touched.
+            const categoriaPagamento = await this.categoriaRepo.findActiveByPapel('PagamentoCartao');
+            if (!categoriaPagamento) {
+                return Result.fail<ITransacaoDTO>('Nenhuma categoria está marcada como "Pagamento de cartão". Um administrador tem de a definir em Categorias.');
+            }
+
             // 3. Prepare new period dates
             const novoPeriodoInicioOrError = Data.createFromParts(novoPeriodo.inicio.dia, novoPeriodo.inicio.mes, novoPeriodo.inicio.ano, true);
             const novoPeriodoFechoOrError = Data.createFromParts(novoPeriodo.fecho.dia, novoPeriodo.fecho.mes, novoPeriodo.fecho.ano, true);
@@ -392,7 +399,8 @@ export default class CartaoCreditoService implements ICartaoCreditoService {
                 cartaoOwnerId,
                 { inicio: periodoAntigoInicio, fecho: periodoAntigoFecho },
                 novoSaldoUtilizado.value,
-                { inicio: periodoNovoInicio, fecho: periodoNovoFecho }
+                { inicio: periodoNovoInicio, fecho: periodoNovoFecho },
+                categoriaPagamento.id.toString()
             );
 
             const ownerNome = await this.getUserNome(cartaoOwnerId);

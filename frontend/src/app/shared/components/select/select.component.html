@@ -7,21 +7,37 @@
     [attr.aria-label]="ariaLabel ? ariaLabel + ': ' + (selectedOption()?.label ?? placeholder) : null"
     aria-haspopup="listbox">
     <span class="app-select-label">
-      <ng-container *ngIf="selectedOption() as opt; else placeholderLabel">{{ opt.label }}</ng-container>
+      <ng-container *ngIf="selectedOption() as opt; else placeholderLabel">
+        <ng-container *ngTemplateOutlet="optionContent; context: { $implicit: opt }"></ng-container>
+      </ng-container>
       <ng-template #placeholderLabel>{{ placeholder }}</ng-template>
     </span>
     <app-icon [name]="showMenu() ? 'ChevronUp' : 'ChevronDown'" [size]="16"></app-icon>
   </button>
 
   <ul class="app-select-list" role="listbox" *ngIf="showMenu()">
-    <li #optionEl *ngFor="let option of options"
-      role="option"
-      tabindex="-1"
-      [class.active]="option.value === value()"
-      [attr.aria-selected]="option.value === value()"
-      (click)="selectOption($event, option)"
-      (keydown)="onListKeydown($event, option)">
-      {{ option.label }}
-    </li>
+    <ng-container *ngFor="let option of options; let i = index">
+      <!-- Cabeçalho do grupo: fora de options/optionEls, por isso o teclado salta-o -->
+      <li *ngIf="startsGroup(i)" role="presentation" class="app-select-group">{{ option.group }}</li>
+      <li #optionEl
+        role="option"
+        tabindex="-1"
+        [class.active]="option.value === value()"
+        [attr.aria-selected]="option.value === value()"
+        (click)="selectOption($event, option)"
+        (keydown)="onListKeydown($event, option)">
+        <ng-container *ngTemplateOutlet="optionContent; context: { $implicit: option }"></ng-container>
+      </li>
+    </ng-container>
   </ul>
 </div>
+
+<ng-template #optionContent let-option>
+  <span *ngIf="option.icon; else textOnly" class="app-select-option">
+    <span class="app-select-icon" aria-hidden="true"
+      [style.background]="iconBackground(option)"
+      [style.border-color]="iconBorder(option)">{{ option.icon }}</span>
+    <span class="app-select-text">{{ option.label }}</span>
+  </span>
+  <ng-template #textOnly>{{ option.label }}</ng-template>
+</ng-template>

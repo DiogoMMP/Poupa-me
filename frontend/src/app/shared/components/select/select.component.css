@@ -91,3 +91,49 @@
   color: var(--brand-accent, #61edd6);
   font-weight: 600;
 }
+
+/* Cabeçalho de grupo: texto simples, sem ícone nem cor, não selecionável */
+.app-select-list li.app-select-group {
+  padding: 10px 10px 4px;
+  cursor: default;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.6);
+}
+
+.app-select-list li.app-select-group:hover {
+  background: none;
+}
+
+.app-select-list li.app-select-group:not(:first-child) {
+  margin-top: 4px;
+}
+
+/* Opção com ícone: emoji num círculo pintado com a cor do grupo */
+.app-select-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.app-select-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.app-select-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
