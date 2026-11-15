@@ -96,6 +96,14 @@ export default class CategoriaRepo implements ICategoriaRepo {
             const papel = (raw.papel as string | null) ?? null;
 
             await this.dataSource.transaction(async (manager) => {
+                // Lock the categoria and check it is still active before touching any papel: if it was deleted after
+                // the service read it, nothing is written (otherwise the papel would move to a deleted categoria)
+                const alvo = await manager.getRepository(CategoriaEntity).findOne({
+                    where: { domainId: id, isActive: true },
+                    lock: { mode: 'pessimistic_write' }
+                });
+                if (!alvo) throw new Error(`Categoria ${id} is not active`);
+
                 const campos: Partial<CategoriaEntity> = { nome: raw.nome as string, icon: raw.icon as string };
 
                 if (alteracoes.mudaGrupo) {
@@ -258,8 +266,13 @@ export default class CategoriaRepo implements ICategoriaRepo {
      */
     private async resolveGrupoPk(manager: EntityManager, grupoDomainId: string | null): Promise<number | null> {
         if (!grupoDomainId) return null;
-        // Only an active group: a categoria must never be saved into a group that was just deleted
-        const grupo = await manager.getRepository(GrupoCategoriaEntity).findOne({ where: { domainId: grupoDomainId, isActive: true } });
+        // Only an active group: a categoria must never be saved into a group that was just deleted. FOR SHARE on the
+        // group row makes this wait for a concurrent GrupoCategoriaRepo.deleteIfEmpty (FOR UPDATE) and see its result.
+        // Always called inside a transaction (save, update, reordenar), which the lock requires.
+        const grupo = await manager.getRepository(GrupoCategoriaEntity).findOne({
+            where: { domainId: grupoDomainId, isActive: true },
+            lock: { mode: 'pessimistic_read' }
+        });
         if (!grupo) throw new Error(`GrupoCategoria not found with id=${grupoDomainId}`);
         return grupo.id;
     }

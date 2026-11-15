@@ -30,6 +30,9 @@ export class GruposCategorias1795000000000 implements MigrationInterface {
         await queryRunner.query(
             'CREATE UNIQUE INDEX IF NOT EXISTS "UQ_grupo_categoria_nome_ativo" ON "grupo_categoria" ("nome") WHERE "is_active" = true'
         );
+        await queryRunner.query(
+            'CREATE UNIQUE INDEX IF NOT EXISTS "UQ_grupo_categoria_domain_id" ON "grupo_categoria" ("domain_id")'
+        );
 
         await queryRunner.query('ALTER TABLE "categoria" ADD COLUMN IF NOT EXISTS "grupo_id" integer');
         await queryRunner.query('ALTER TABLE "categoria" ADD COLUMN IF NOT EXISTS "ordem" integer NOT NULL DEFAULT 0');
@@ -64,6 +67,7 @@ export class GruposCategorias1795000000000 implements MigrationInterface {
         await queryRunner.query('ALTER TABLE "categoria" DROP COLUMN IF EXISTS "ordem"');
         await queryRunner.query('ALTER TABLE "categoria" DROP COLUMN IF EXISTS "grupo_id"');
 
+        await queryRunner.query('DROP INDEX IF EXISTS "UQ_grupo_categoria_domain_id"');
         await queryRunner.query('DROP INDEX IF EXISTS "UQ_grupo_categoria_nome_ativo"');
         await queryRunner.query('DROP TABLE IF EXISTS "grupo_categoria"');
     }

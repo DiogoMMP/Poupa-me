@@ -76,13 +76,31 @@ export default class GrupoCategoriaRepo implements IGrupoCategoriaRepo {
     }
 
     /**
-     * Soft-deletes a GrupoCategoria by its domain ID (is_active = false), which frees its nome.
+     * Soft-deletes a group only if it has no active categorias, in one DB transaction, and returns how many active
+     * categorias it has (0 means it was deleted). The group row is locked FOR UPDATE while counting, and assigning a
+     * categoria to a group locks the same row FOR SHARE (CategoriaRepo.resolveGrupoPk), so a categoria can never enter
+     * the group between the count and the delete.
+     * @param id - The domain ID of the group to delete.
      */
-    public async deleteById(id: string): Promise<void> {
+    public async deleteIfEmpty(id: string): Promise<number> {
         try {
-            await this.repo.update({ domainId: id }, { isActive: false });
+            return await this.dataSource.transaction(async (manager) => {
+                const grupo = await manager.getRepository(GrupoCategoriaEntity).findOne({
+                    where: { domainId: id, isActive: true },
+                    lock: { mode: 'pessimistic_write' }
+                });
+                if (!grupo) return 0;
+
+                const ativas = await manager.getRepository(CategoriaEntity).count({
+                    where: { grupoId: grupo.id, isActive: true }
+                });
+                if (ativas === 0) {
+                    await manager.getRepository(GrupoCategoriaEntity).update({ id: grupo.id }, { isActive: false });
+                }
+                return ativas;
+            });
         } catch (err) {
-            this.logger.error('GrupoCategoriaRepo.deleteById error: %o', err);
+            this.logger.error('GrupoCategoriaRepo.deleteIfEmpty error: %o', err);
             throw err;
         }
     }
@@ -122,17 +140,6 @@ export default class GrupoCategoriaRepo implements IGrupoCategoriaRepo {
         return GrupoCategoriaMap.toDomain(row);
     }
 
-    /**
-     * Counts the active categorias of a group, by the group's domain ID.
-     */
-    public async countActiveCategorias(grupoId: string): Promise<number> {
-        return this.dataSource.getRepository(CategoriaEntity)
-            .createQueryBuilder('cat')
-            .innerJoin('cat.grupo', 'g')
-            .where('g.domain_id = :grupoId', { grupoId })
-            .andWhere('cat.is_active = true')
-            .getCount();
-    }
 
     /**
      * Rewrites the ordem of the given groups (1..n, by position in the list) in a single DB transaction.

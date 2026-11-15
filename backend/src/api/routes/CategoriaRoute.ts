@@ -46,12 +46,18 @@ const route = Router();
  *           type: string
  *         grupoId:
  *           type: string
- *           description: Required on create; on update, moves the categoria to the end of that (active) group.
+ *           description: Required on create (see CategoriaCreateInput); on update, moves the categoria to the end of that (active) group.
  *         papel:
  *           type: string
  *           nullable: true
  *           enum: [PagamentoCartao]
  *           description: Optional on create and update. Setting it takes it from the categoria that had it; on update, null clears it and leaving it out keeps it.
+ *     CategoriaCreateInput:
+ *       description: Body of POST /categoria. Same fields as CategoriaInput, with grupoId required.
+ *       allOf:
+ *         - $ref: '#/components/schemas/CategoriaInput'
+ *         - type: object
+ *           required: [nome, icon, grupoId]
  *     CategoriasAgrupadas:
  *       type: object
  *       properties:
@@ -98,7 +104,7 @@ export default (app: Router) => {
    *       content:
    *         application/json:
    *           schema:
-   *             $ref: '#/components/schemas/CategoriaInput'
+   *             $ref: '#/components/schemas/CategoriaCreateInput'
    *     responses:
    *       201:
    *         description: Categoria created

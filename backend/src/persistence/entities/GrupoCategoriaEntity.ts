@@ -3,6 +3,9 @@ import {Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColu
 @Entity({name: 'grupo_categoria'})
 // Unicidade só entre grupos ativos: um grupo apagado (soft delete) liberta o nome.
 @Index('UQ_grupo_categoria_nome_ativo', ['nome'], { unique: true, where: '"is_active" = true' })
+// O domain id é gerado lendo o máximo atual (como nos outros repos); o índice único faz falhar um duplicado gerado por
+// dois "criar grupo" simultâneos, em vez de deixar dois grupos com o mesmo id.
+@Index('UQ_grupo_categoria_domain_id', ['domainId'], { unique: true })
 export class GrupoCategoriaEntity {
     // Nome do constraint fixo para coincidir com a migration 1795000000000-GruposCategorias.
     @PrimaryGeneratedColumn({ primaryKeyConstraintName: 'PK_grupo_categoria_id' })

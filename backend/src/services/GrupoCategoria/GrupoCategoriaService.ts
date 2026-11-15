@@ -125,15 +125,14 @@ export default class GrupoCategoriaService implements IGrupoCategoriaService {
             const existing = await this.grupoCategoriaRepo.findActiveById(id);
             if (!existing) return Result.fail<boolean>(grupoNaoEncontrado(id));
 
-            const ativas = await this.grupoCategoriaRepo.countActiveCategorias(id);
+            // Counts and deletes in one locked transaction, so no categoria can enter the group in between
+            const ativas = await this.grupoCategoriaRepo.deleteIfEmpty(id);
             if (ativas > 0) {
                 return Result.fail<boolean>(
                     `O grupo "${existing.nome.value}" tem ${ativas} ${ativas === 1 ? 'categoria' : 'categorias'}. ` +
                     'Mude-as de grupo ou apague-as antes de apagar o grupo.'
                 );
             }
-
-            await this.grupoCategoriaRepo.deleteById(id);
             return Result.ok<boolean>(true);
         } catch (e) {
             this.logger.error('GrupoCategoriaService.deleteGrupoById error: %o', e);
